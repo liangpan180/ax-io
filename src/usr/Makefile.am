@@ -24,7 +24,6 @@ AM_CFLAGS = -fPIC -DPIC  			\
 	    -I$(top_srcdir)/src/usr/xio		\
 	    -I$(top_srcdir)/src/usr/transport	\
 	    $(libxio_rdma_srcdir)		\
-	    -I$(top_srcdir)/src/usr/transport/tcp	\
 	    -I$(top_srcdir)/src/common  	\
 	    -I$(top_srcdir)/include		\
 	    @AM_CFLAGS@
@@ -75,7 +74,6 @@ libxio_headers = 	./xio/get_clock.h 			\
 			./transport/xio_mempool.h		\
 			./transport/xio_usr_transport.h		\
 			$(libxio_rdma_headers)			\
-			./transport/tcp/xio_tcp_transport.h	\
 			../common/xio_workqueue.h		\
 			../common/xio_workqueue_priv.h		\
 			../common/xio_common.h			\
@@ -127,8 +125,6 @@ libxio_la_SOURCES =	$(libxio_headers)		\
 			./xio/xio_sg_iovptr.c		\
 			./xio/xio_sg_table.c		\
 			$(libxio_rdma_sources)		\
-			./transport/tcp/xio_tcp_management.c	\
-			./transport/tcp/xio_tcp_datapath.c	\
 			./transport/xio_mempool.c	\
 			./transport/xio_usr_transport.c	\
 			../common/xio_objpool.c		\

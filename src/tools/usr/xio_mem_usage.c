@@ -63,7 +63,6 @@
 #endif
 #include "xio_usr_transport.h"
 #include "xio_mempool.h"
-#include "xio_tcp_transport.h"
 
 #define PRINT_SIZE(type) \
 { \
@@ -109,17 +108,6 @@ int main(int argc, char **argv)
 	PRINT_SIZE(struct xio_cm_channel);
 	PRINT_SIZE(struct xio_work_req);
 #endif
-
-	printf("\nTCP Transport:\n");
-	PRINT_SIZE(struct xio_tcp_connect_msg);
-	PRINT_SIZE(struct xio_tcp_pending_conn);
-	PRINT_SIZE(struct xio_tcp_setup_msg);
-	PRINT_SIZE(struct xio_tcp_cancel_hdr);
-	PRINT_SIZE(struct xio_tcp_req_hdr);
-	PRINT_SIZE(struct xio_tcp_rsp_hdr);
-	PRINT_SIZE(struct xio_tcp_task);
-	PRINT_SIZE(struct xio_tcp_transport);
-	PRINT_SIZE(struct xio_tcp_work_req);
 
 	printf("\n");
 	return 0;
