@@ -46,7 +46,6 @@
 #include "xio_idr.h"
 #include "xio_objpool.h"
 #include "xio_workqueue.h"
-#include <xio_env_adv.h>
 #include "xio_timers_list.h"
 #include "xio_protocol.h"
 #include "xio_mbuf.h"

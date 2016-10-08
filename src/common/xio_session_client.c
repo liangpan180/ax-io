@@ -58,7 +58,6 @@
 #include "xio_session.h"
 #include "xio_connection.h"
 #include "xio_session_priv.h"
-#include <xio_env_adv.h>
 
 /*---------------------------------------------------------------------------*/
 /* xio_session_write_setup_req						     */

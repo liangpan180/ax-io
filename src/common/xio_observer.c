@@ -40,7 +40,6 @@
 #include "xio_log.h"
 #include "xio_common.h"
 #include "xio_observer.h"
-#include <xio_env_adv.h>
 
 /*---------------------------------------------------------------------------*/
 /* xio_observer_create							     */

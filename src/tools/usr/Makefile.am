@@ -1,6 +1,6 @@
 
 # additional include pathes necessary to compile the C programs
-AM_CFLAGS = -I$(top_srcdir)/src/libxio_os/linuxapp	\
+AM_CFLAGS = -I$(top_srcdir)/src/env		\
 	    -I$(top_srcdir)/include @AM_CFLAGS@ \
 	    -I$(top_srcdir)/src/common		\
 	    -I$(top_srcdir)/src/usr		\

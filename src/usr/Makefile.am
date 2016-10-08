@@ -19,7 +19,7 @@ else
 endif
 
 AM_CFLAGS = -fPIC -DPIC  			\
-	    -I$(top_srcdir)/src/libxio_os/linuxapp	\
+	    -I$(top_srcdir)/src/env		\
 	    -I$(top_srcdir)/src/usr 		\
 	    -I$(top_srcdir)/src/usr/xio		\
 	    -I$(top_srcdir)/src/usr/transport	\
