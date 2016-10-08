@@ -216,7 +216,7 @@ AC_SUBST([FIO_ROOT])
 ##########################################################################
 
 subdirs="src/usr";
-subdirs="$subdirs src/tools/usr/";
+subdirs="$subdirs src/tools/";
 subdirs="$subdirs examples/hello_world";
 subdirs="$subdirs examples/hello_world_mt";
 subdirs="$subdirs examples/hello_world_iov";
@@ -276,7 +276,7 @@ AC_SUBST([subdirs])
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([Doxyfile])
 AC_CONFIG_FILES([src/usr/Makefile])
-AC_CONFIG_FILES([src/tools/usr/Makefile])
+AC_CONFIG_FILES([src/tools/Makefile])
 AC_CONFIG_FILES([examples/hello_world/Makefile])
 AC_CONFIG_FILES([examples/hello_world_mt/Makefile])
 AC_CONFIG_FILES([examples/hello_world_iov/Makefile])
