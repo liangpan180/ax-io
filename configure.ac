@@ -217,25 +217,25 @@ AC_SUBST([FIO_ROOT])
 
 subdirs="src/usr";
 subdirs="$subdirs src/tools/usr/";
-subdirs="$subdirs examples/usr/hello_world";
-subdirs="$subdirs examples/usr/hello_world_mt";
-subdirs="$subdirs examples/usr/hello_world_iov";
-subdirs="$subdirs examples/usr/hello_world_daemon";
+subdirs="$subdirs examples/hello_world";
+subdirs="$subdirs examples/hello_world_mt";
+subdirs="$subdirs examples/hello_world_iov";
+subdirs="$subdirs examples/hello_world_daemon";
 
 if test "$mypj_found_event_headers" == "yes"; then
-	subdirs="$subdirs examples/usr/hello_world_libevent";
+	subdirs="$subdirs examples/hello_world_libevent";
 fi
 
-subdirs="$subdirs tests/usr/common";
-subdirs="$subdirs tests/usr/hello_test";
-subdirs="$subdirs tests/usr/hello_test_mt";
-subdirs="$subdirs tests/usr/hello_test_bidi";
-subdirs="$subdirs tests/usr/hello_test_lat";
-subdirs="$subdirs tests/usr/hello_test_ow";
-subdirs="$subdirs tests/usr/hello_test_oneway";
-subdirs="$subdirs tests/usr/event_loop_tests";
+subdirs="$subdirs tests/common";
+subdirs="$subdirs tests/hello_test";
+subdirs="$subdirs tests/hello_test_mt";
+subdirs="$subdirs tests/hello_test_bidi";
+subdirs="$subdirs tests/hello_test_lat";
+subdirs="$subdirs tests/hello_test_ow";
+subdirs="$subdirs tests/hello_test_oneway";
+subdirs="$subdirs tests/event_loop_tests";
 
-subdirs="$subdirs benchmarks/usr/xio_perftest";
+subdirs="$subdirs benchmarks/xio_perftest";
 
 ##########################################################################
 
@@ -277,22 +277,22 @@ AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([Doxyfile])
 AC_CONFIG_FILES([src/usr/Makefile])
 AC_CONFIG_FILES([src/tools/usr/Makefile])
-AC_CONFIG_FILES([examples/usr/hello_world/Makefile])
-AC_CONFIG_FILES([examples/usr/hello_world_mt/Makefile])
-AC_CONFIG_FILES([examples/usr/hello_world_iov/Makefile])
-AC_CONFIG_FILES([examples/usr/hello_world_daemon/Makefile])
+AC_CONFIG_FILES([examples/hello_world/Makefile])
+AC_CONFIG_FILES([examples/hello_world_mt/Makefile])
+AC_CONFIG_FILES([examples/hello_world_iov/Makefile])
+AC_CONFIG_FILES([examples/hello_world_daemon/Makefile])
 if test "$mypj_found_event_headers" == "yes"; then
-	AC_CONFIG_FILES([examples/usr/hello_world_libevent/Makefile])
+	AC_CONFIG_FILES([examples/hello_world_libevent/Makefile])
 fi
-AC_CONFIG_FILES([tests/usr/common/Makefile])
-AC_CONFIG_FILES([tests/usr/hello_test/Makefile])
-AC_CONFIG_FILES([tests/usr/hello_test_mt/Makefile])
-AC_CONFIG_FILES([tests/usr/hello_test_bidi/Makefile])
-AC_CONFIG_FILES([tests/usr/hello_test_lat/Makefile])
-AC_CONFIG_FILES([tests/usr/hello_test_ow/Makefile])
-AC_CONFIG_FILES([tests/usr/hello_test_oneway/Makefile])
-AC_CONFIG_FILES([tests/usr/event_loop_tests/Makefile])
-AC_CONFIG_FILES([benchmarks/usr/xio_perftest/Makefile])
+AC_CONFIG_FILES([tests/common/Makefile])
+AC_CONFIG_FILES([tests/hello_test/Makefile])
+AC_CONFIG_FILES([tests/hello_test_mt/Makefile])
+AC_CONFIG_FILES([tests/hello_test_bidi/Makefile])
+AC_CONFIG_FILES([tests/hello_test_lat/Makefile])
+AC_CONFIG_FILES([tests/hello_test_ow/Makefile])
+AC_CONFIG_FILES([tests/hello_test_oneway/Makefile])
+AC_CONFIG_FILES([tests/event_loop_tests/Makefile])
+AC_CONFIG_FILES([benchmarks/xio_perftest/Makefile])
 
 # generate the final Makefile etc.
 AC_OUTPUT

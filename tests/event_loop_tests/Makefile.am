@@ -6,12 +6,12 @@ else
     libxio_rdma_ldflags =
 endif
 
-AM_CFLAGS = -DPIC -fPIC -I$(top_srcdir)/include -I$(top_srcdir)/tests/usr/common @AM_CFLAGS@
+AM_CFLAGS = -DPIC -fPIC -I$(top_srcdir)/include -I$(top_srcdir)/tests/common @AM_CFLAGS@
 
 AM_LDFLAGS = -lxio $(libxio_rdma_ldflags) -lrt \
 	     -L$(top_builddir)/src/usr/
 
-COMMON_TEST_LD = $(top_builddir)/tests/usr/common
+COMMON_TEST_LD = $(top_builddir)/tests/common
 
 ###############################################################################
 # THE PROGRAMS TO BUILD
