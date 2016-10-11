@@ -38,17 +38,34 @@
 #ifndef XIO_TRANSPORT_H
 #define XIO_TRANSPORT_H
 
+#include <infiniband/verbs.h>
+#include "xio_hash.h"
+#include "xio_task.h"
+#include "xio_ev_data.h"
+#include "xio_workqueue_priv.h"
+#include <sys/hashtable.h>
+
 /*---------------------------------------------------------------------------*/
 /* forward declarations	                                                     */
 /*---------------------------------------------------------------------------*/
-struct xio_task;
 struct xio_observer;
 struct xio_observable;
-struct xio_tasks_pool_ops;
 
 /*---------------------------------------------------------------------------*/
 /* enums								     */
 /*---------------------------------------------------------------------------*/
+enum xio_transport_state {
+	XIO_TRANSPORT_STATE_INIT,
+	XIO_TRANSPORT_STATE_LISTEN,
+	XIO_TRANSPORT_STATE_CONNECTING,
+	XIO_TRANSPORT_STATE_CONNECTED,
+	XIO_TRANSPORT_STATE_DISCONNECTED,
+	XIO_TRANSPORT_STATE_RECONNECT,
+	XIO_TRANSPORT_STATE_CLOSED,
+	XIO_TRANSPORT_STATE_DESTROYED,
+	XIO_TRANSPORT_STATE_ERROR
+};
+
 enum xio_transport_event {
 	XIO_TRANSPORT_EVENT_NEW_CONNECTION,
 	XIO_TRANSPORT_EVENT_ESTABLISHED,
@@ -95,7 +112,7 @@ union xio_transport_event_data {
 		int			pad;
 	} cancel;
 	struct {
-		struct xio_transport_base	*child_trans_hndl;
+		struct xio_transport_handle	*child_trans_hndl;
 	} new_connection;
 	struct {
 		uint32_t	cid;
@@ -110,17 +127,35 @@ union xio_transport_event_data {
 	} error;
 };
 
-struct xio_transport_base {
-	struct xio_observable		observable;
-	uint32_t			is_client;  /* client or server */
-	int				pad;
-	char				*portal_uri;
-	struct sockaddr_storage		peer_addr;
-	struct sockaddr_storage		local_addr;
-	enum   xio_proto		proto;
-	struct kref			kref;
-	struct xio_context		*ctx;
+struct xio_tasks_pool_cls {
+	void		*pool;
+	struct xio_task * (*task_get)(void *pool, void *context);
+	void		  (*task_put)(struct xio_task *task);
+
+	struct xio_task	* (*task_lookup)(void *pool, int task_id);
 };
+
+/* LIANGPAN */
+struct __attribute__((__packed__)) xio_rdma_setup_msg {
+	uint16_t		credits;	/* peer send credits	*/
+	uint16_t		sq_depth;
+	uint16_t		rq_depth;
+	uint16_t		rkey_tbl_size;
+	uint64_t		buffer_sz;
+	uint32_t		max_in_iovsz;
+	uint32_t		max_out_iovsz;
+	uint32_t                max_header_len;
+	uint32_t		pad;
+};
+
+struct xio_work_req {
+	union {
+		struct ibv_send_wr	send_wr;
+		struct ibv_recv_wr	recv_wr;
+	};
+	struct ibv_sge			*sge;
+};
+/* LIANGPAN */
 
 struct xio_transport_attr {
 	uint8_t			tos;		/**< type of service RFC 2474 */
@@ -132,13 +167,144 @@ struct xio_transport_init_attr {
 	uint8_t			pad[3];		/**< padding		     */
 };
 
+struct xio_transport_handle {
+	struct xio_observable		observable;
+	uint32_t			is_client;  /* client or server */
+	int				pad;
+	char				*portal_uri;
+	struct sockaddr_storage		peer_addr;
+	struct sockaddr_storage		local_addr;
+	enum   xio_proto		proto;
+	struct kref			kref;
+	struct xio_context		*ctx;
+	struct xio_cq			*tcq;
+	struct ibv_qp			*qp;
+	struct xio_mempool		*rdma_mempool;
+	struct xio_tasks_pool		*phantom_tasks_pool;
+
+	struct list_head		trans_list_entry;
+
+	/*  tasks queues */
+	struct list_head		tx_ready_list;
+	struct list_head		tx_comp_list;
+	struct list_head		in_flight_list;
+	struct list_head		rx_list;
+	struct list_head		io_list;
+	struct list_head		rdma_rd_req_list;
+	struct list_head		rdma_rd_req_in_flight_list;
+	struct list_head		rdma_rd_rsp_list;
+	struct list_head		rdma_rd_rsp_in_flight_list;
+
+		/* rx parameters */
+	int				rq_depth;	 /* max rcv per qp
+							    allowed */
+	int				rqe_avail;	 /* recv queue elements
+							    avail */
+	uint16_t			sim_peer_credits;  /* simulates the peer
+							    * credits management
+							    * to control nop
+							    * sends
+							    */
+	uint16_t			credits;	  /* the ack this
+							     peer sends */
+	uint16_t			peer_credits;
+
+	uint16_t			pad1;
+	uint32_t                        peer_max_header;
+
+	/* fast path params */
+	int				rdma_rd_req_in_flight;
+	int				rdma_rd_rsp_in_flight;
+	int				sqe_avail;
+	enum xio_transport_state	state;
+
+	/* tx parameters */
+	int				kick_rdma_rd_req;
+	int				kick_rdma_rd_rsp;
+	int				reqs_in_flight_nr;
+	int				rsps_in_flight_nr;
+	int				tx_ready_tasks_num;
+	int				max_tx_ready_tasks_num;
+	int				max_inline_data;
+	size_t				max_inline_buf_sz;
+	int				max_sge;
+	uint16_t			req_sig_cnt;
+	uint16_t			rsp_sig_cnt;
+	/* sender window parameters */
+	uint16_t			sn;	   /* serial number */
+	uint16_t			ack_sn;	   /* serial number */
+
+	uint16_t			max_sn;	   /* upper edge of
+						      sender's window + 1 */
+
+	/* receiver window parameters */
+	uint16_t			exp_sn;	   /* lower edge of
+						      receiver's window */
+
+	uint16_t			max_exp_sn; /* upper edge of
+						       receiver's window + 1 */
+
+	uint16_t			pad2;
+
+	/* control path params */
+	int				sq_depth;     /* max snd allowed  */
+	uint16_t			client_initiator_depth;
+	uint16_t			client_responder_resources;
+
+	uint32_t			peer_max_in_iovsz;
+	uint32_t			peer_max_out_iovsz;
+	int32_t				handler_nesting;
+	/* connection's flow control */
+	size_t				membuf_sz;
+
+	struct xio_transport		*transport;
+	struct xio_cm_channel		*cm_channel;
+	struct rdma_cm_id		*cm_id;
+	struct xio_tasks_pool_cls	initial_pool_cls;
+	struct xio_tasks_pool_cls	primary_pool_cls;
+
+	struct xio_rdma_setup_msg	setup_rsp;
+
+	/* for reconnect */
+	struct xio_device		*dev;
+	struct xio_rkey_tbl		*rkey_tbl;
+	struct xio_rkey_tbl		*peer_rkey_tbl;
+
+	/* for reconnect */
+	uint16_t			rkey_tbl_size;
+	uint16_t			peer_rkey_tbl_size;
+
+	uint32_t			ignore_timewait:1;
+	uint32_t			timewait_nr:1; /* flag */
+	uint32_t			ignore_disconnect:1;
+	uint32_t			disconnect_nr:1; /* flag */
+	uint32_t                        beacon_sent:1;
+	uint32_t			reserved:27;
+
+	/* too big to be on stack - use as temporaries */
+	union {
+		struct xio_msg		dummy_msg;
+		struct xio_work_req	dummy_wr;
+	};
+	struct xio_ev_data		close_event;
+	struct xio_ev_data		timewait_exit_event;
+	xio_delayed_work_handle_t	timewait_timeout_work;
+	xio_delayed_work_handle_t	disconnect_timeout_work;
+	struct ibv_send_wr		beacon;
+	struct xio_task			beacon_task;
+	uint32_t			trans_attr_mask;
+	struct xio_transport_attr	trans_attr;
+	struct xio_srq			*xio_srq;
+	HT_ENTRY(rdma_hndl, xio_key_int32) rdma_hndl_htbl;
+};
+
 struct xio_transport_msg_validators_cls {
 	int	(*is_valid_out_msg)(struct xio_msg *msg);
 	int	(*is_valid_in_req)(struct xio_msg *msg);
 };
 
 struct xio_tasks_pool_ops {
-	void	(*pool_get_params)(struct xio_transport_base *transport_hndl,
+	void	(*pool_get_params)(struct xio_transport_handle *transport_hndl,
 				   int *start_nr,
 				   int *max_nr,
 				   int *alloc_nr,
@@ -146,41 +312,33 @@ struct xio_tasks_pool_ops {
 				   int *slab_dd_size,
 				   int *task_dd_size);
 
-	int	(*slab_pre_create)(struct xio_transport_base *trans_hndl,
+	int	(*slab_pre_create)(struct xio_transport_handle *trans_hndl,
 				   int alloc_nr,
 				   void *pool_dd_data, void *slab_dd_data);
-	int	(*slab_destroy)(struct xio_transport_base *trans_hndl,
+	int	(*slab_destroy)(struct xio_transport_handle *trans_hndl,
 				void *pool_dd_data, void *slab_dd_data);
-	int	(*slab_init_task)(struct xio_transport_base *trans_hndl,
+	int	(*slab_init_task)(struct xio_transport_handle *trans_hndl,
 				  void *pool_dd_data, void *slab_dd_data,
 				  int tid, struct xio_task *task);
-	int	(*slab_uninit_task)(struct xio_transport_base *trans_hndl,
+	int	(*slab_uninit_task)(struct xio_transport_handle *trans_hndl,
 				    void *pool_dd_data, void *slab_dd_data,
 				    struct xio_task *task);
-	int	(*slab_remap_task)(struct xio_transport_base *old_th,
-				   struct xio_transport_base *new_th,
+	int	(*slab_remap_task)(struct xio_transport_handle *old_th,
+				   struct xio_transport_handle *new_th,
 				   void *pool_dd_data, void *slab_dd_data,
 				   struct xio_task *task);
-	int	(*slab_post_create)(struct xio_transport_base *trans_hndl,
+	int	(*slab_post_create)(struct xio_transport_handle *trans_hndl,
 				    void *pool_dd_data, void *slab_dd_data);
-	int	(*pool_pre_create)(struct xio_transport_base *trans_hndl,
+	int	(*pool_pre_create)(struct xio_transport_handle *trans_hndl,
 				   void *pool, void *pool_dd_data);
-	int	(*pool_post_create)(struct xio_transport_base *trans_hndl,
+	int	(*pool_post_create)(struct xio_transport_handle *trans_hndl,
 				    void *pool, void *pool_dd_data);
-	int	(*pool_destroy)(struct xio_transport_base *trans_hndl,
+	int	(*pool_destroy)(struct xio_transport_handle *trans_hndl,
 				void *pool, void *pool_dd_data);
-	int	(*task_pre_put)(struct xio_transport_base *trans_hndl,
+	int	(*task_pre_put)(struct xio_transport_handle *trans_hndl,
 				struct xio_task *task);
-	int	(*task_post_get)(struct xio_transport_base *trans_hndl,
+	int	(*task_post_get)(struct xio_transport_handle *trans_hndl,
 				 struct xio_task *task);
-};
-
-struct xio_tasks_pool_cls {
-	void		*pool;
-	struct xio_task * (*task_get)(void *pool, void *context);
-	void		  (*task_put)(struct xio_task *task);
-
-	struct xio_task	* (*task_lookup)(void *pool, int task_id);
 };
 
 struct xio_transport {
@@ -197,55 +355,55 @@ struct xio_transport {
 	void	(*release)(struct xio_transport *self);
 
 	/* running thread (context) is going down */
-	int	(*context_shutdown)(struct xio_transport_base *trans_hndl,
+	int	(*context_shutdown)(struct xio_transport_handle *trans_hndl,
 				    struct xio_context *ctx);
 
 	/* task pools management */
 	void	(*get_pools_setup_ops)(
-				struct xio_transport_base *trans_hndl,
+				struct xio_transport_handle *trans_hndl,
 				struct xio_tasks_pool_ops **initial_pool_ops,
 				struct xio_tasks_pool_ops **primary_pool_ops);
 
-	void	(*set_pools_cls)(struct xio_transport_base *trans_hndl,
+	void	(*set_pools_cls)(struct xio_transport_handle *trans_hndl,
 				 struct xio_tasks_pool_cls *initial_pool_cls,
 				 struct xio_tasks_pool_cls *primary_pool_cls);
 
 	/* connection */
-	struct xio_transport_base *(*open)(
+	struct xio_transport_handle *(*open)(
 				struct xio_transport *self,
 				struct xio_context *ctx,
 				struct xio_observer *observer,
 				uint32_t trans_attr_mask,
 				struct xio_transport_init_attr *attr);
 
-	int	(*connect)(struct xio_transport_base *trans_hndl,
+	int	(*connect)(struct xio_transport_handle *trans_hndl,
 			   const char *portal_uri,
 			   const char *out_if);
 
-	int	(*listen)(struct xio_transport_base *trans_hndl,
+	int	(*listen)(struct xio_transport_handle *trans_hndl,
 			  const char *portal_uri, uint16_t *src_port,
 			  int backlog);
 
-	int	(*accept)(struct xio_transport_base *trans_hndl);
+	int	(*accept)(struct xio_transport_handle *trans_hndl);
 
-	int	(*poll)(struct xio_transport_base *trans_hndl,
+	int	(*poll)(struct xio_transport_handle *trans_hndl,
 			long min_nr, long nr,
 			struct timespec *timeout);
 
-	int	(*reject)(struct xio_transport_base *trans_hndl);
+	int	(*reject)(struct xio_transport_handle *trans_hndl);
 
-	void	(*close)(struct xio_transport_base *trans_hndl);
+	void	(*close)(struct xio_transport_handle *trans_hndl);
 
-	int	(*dup2)(struct xio_transport_base *old_trans_hndl,
-			struct xio_transport_base **new_trans_hndl);
+	int	(*dup2)(struct xio_transport_handle *old_trans_hndl,
+			struct xio_transport_handle **new_trans_hndl);
 
-	int	(*update_task)(struct xio_transport_base *trans_hndl,
+	int	(*update_task)(struct xio_transport_handle *trans_hndl,
 			       struct xio_task *task);
 
-	int	(*update_rkey)(struct xio_transport_base *trans_hndl,
+	int	(*update_rkey)(struct xio_transport_handle *trans_hndl,
 			       uint32_t *rkey);
 
-	int	(*send)(struct xio_transport_base *trans_hndl,
+	int	(*send)(struct xio_transport_handle *trans_hndl,
 			struct xio_task *task);
 
 	int	(*set_opt)(void *xio_obj,
@@ -254,19 +412,19 @@ struct xio_transport {
 	int	(*get_opt)(void *xio_obj,
 			   int optname, void *optval, int *optlen);
 
-	int	(*cancel_req)(struct xio_transport_base *trans_hndl,
+	int	(*cancel_req)(struct xio_transport_handle *trans_hndl,
 			      struct xio_msg *req, uint64_t stag,
 			      void *ulp_msg, size_t ulp_msg_len);
 
-	int	(*cancel_rsp)(struct xio_transport_base *trans_hndl,
+	int	(*cancel_rsp)(struct xio_transport_handle *trans_hndl,
 			      struct xio_task *task, enum xio_status result,
 			      void *ulp_msg, size_t ulp_msg_len);
 
-	int	(*modify)(struct xio_transport_base *trans_hndl,
+	int	(*modify)(struct xio_transport_handle *trans_hndl,
 			  struct xio_transport_attr *attr,
 			  int attr_mask);
 
-	int	(*query)(struct xio_transport_base *trans_hndl,
+	int	(*query)(struct xio_transport_handle *trans_hndl,
 			 struct xio_transport_attr *attr,
 			 int attr_mask);
 
@@ -277,7 +435,7 @@ struct xio_transport {
 /* xio_transport_reg_observer	                                             */
 /*---------------------------------------------------------------------------*/
 static inline void xio_transport_reg_observer(
-		struct xio_transport_base *trans_hndl,
+		struct xio_transport_handle *trans_hndl,
 		struct xio_observer *observer)
 {
 	xio_observable_reg_observer(&trans_hndl->observable, observer);
@@ -287,7 +445,7 @@ static inline void xio_transport_reg_observer(
 /* xio_transport_unreg_observer						     */
 /*---------------------------------------------------------------------------*/
 static inline void xio_transport_unreg_observer(
-		struct xio_transport_base *trans_hndl,
+		struct xio_transport_handle *trans_hndl,
 		struct xio_observer *observer)
 {
 	xio_observable_unreg_observer(&trans_hndl->observable, observer);
@@ -297,7 +455,7 @@ static inline void xio_transport_unreg_observer(
 /* xio_transport_unreg_observer						     */
 /*---------------------------------------------------------------------------*/
 static inline void xio_transport_notify_observer(
-		struct xio_transport_base *trans_hndl,
+		struct xio_transport_handle *trans_hndl,
 		int event, void *event_data)
 {
 	xio_observable_notify_all_observers(&trans_hndl->observable,
@@ -308,7 +466,7 @@ static inline void xio_transport_notify_observer(
 /* xio_transport_notify_observer_error					     */
 /*---------------------------------------------------------------------------*/
 static inline void xio_transport_notify_observer_error(
-				struct xio_transport_base *trans_hndl,
+				struct xio_transport_handle *trans_hndl,
 				int reason)
 {
 	union xio_transport_event_data ev_data = {};
@@ -324,7 +482,7 @@ static inline void xio_transport_notify_observer_error(
 /* xio_transport_notify_message_error					     */
 /*---------------------------------------------------------------------------*/
 static inline void xio_transport_notify_message_error(
-				struct xio_transport_base *trans_hndl,
+				struct xio_transport_handle *trans_hndl,
 				struct xio_task *task,
 				enum xio_status reason)
 {
@@ -340,7 +498,7 @@ static inline void xio_transport_notify_message_error(
 
 int xio_transport_flush_task_list(struct list_head *list);
 
-int xio_transport_assign_in_buf(struct xio_transport_base *trans_hndl,
+int xio_transport_assign_in_buf(struct xio_transport_handle *trans_hndl,
 				struct xio_task *task,
 				int *is_assigned);
 
@@ -359,11 +517,11 @@ void xio_unreg_transport(struct xio_transport *transport);
 /*---------------------------------------------------------------------------*/
 struct xio_transport *xio_get_transport(const char *name);
 
-int xio_rdma_cancel_req(struct xio_transport_base *transport,
+int xio_rdma_cancel_req(struct xio_transport_handle *transport,
 			struct xio_msg *req, uint64_t stag,
 			void *ulp_msg, size_t ulp_msg_sz);
 
-int xio_rdma_cancel_rsp(struct xio_transport_base *transport,
+int xio_rdma_cancel_rsp(struct xio_transport_handle *transport,
 			struct xio_task *task, enum xio_status result,
 			void *ulp_msg, size_t ulp_msg_sz);
 

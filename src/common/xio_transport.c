@@ -130,7 +130,7 @@ EXPORT_SYMBOL(xio_transport_flush_task_list);
 /*---------------------------------------------------------------------------*/
 /* xio_transport_assign_in_buf						     */
 /*---------------------------------------------------------------------------*/
-int xio_transport_assign_in_buf(struct xio_transport_base *trans_hndl,
+int xio_transport_assign_in_buf(struct xio_transport_handle *trans_hndl,
 				struct xio_task *task, int *is_assigned)
 {
 	union xio_transport_event_data event_data = {};

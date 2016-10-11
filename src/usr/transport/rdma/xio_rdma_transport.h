@@ -98,8 +98,8 @@ extern spinlock_t		dev_list_lock;
 		struct xio_rdma_task *(rt) =		\
 			(struct xio_rdma_task *)(xt)->dd_data
 #define XIO_TO_RDMA_HNDL(xt, rh)				\
-		struct xio_rdma_transport *(rh) =		\
-			(struct xio_rdma_transport *)(xt)->context
+		struct xio_transport_handle *(rh) =		\
+			(struct xio_transport_handle *)(xt)->context
 
 #ifdef HAVE_MPAGES_EXP
 #    define IBV_XIO_ACCESS_ALLOCATE_MR		IBV_EXP_ACCESS_ALLOCATE_MR
@@ -148,8 +148,7 @@ enum xio_ib_op_code {
 	XIO_IB_RDMA_READ_DIRECT
 };
 
-struct xio_transport_base;
-struct xio_rdma_transport;
+struct xio_transport_handle;
 
 /*---------------------------------------------------------------------------*/
 struct xio_rdma_options {
@@ -211,18 +210,6 @@ struct __attribute__((__packed__)) xio_rdma_rsp_hdr {
 	uint64_t		ulp_imm_len;	/* ulp data length	*/
 };
 
-struct __attribute__((__packed__)) xio_rdma_setup_msg {
-	uint16_t		credits;	/* peer send credits	*/
-	uint16_t		sq_depth;
-	uint16_t		rq_depth;
-	uint16_t		rkey_tbl_size;
-	uint64_t		buffer_sz;
-	uint32_t		max_in_iovsz;
-	uint32_t		max_out_iovsz;
-	uint32_t                max_header_len;
-	uint32_t		pad;
-};
-
 struct __attribute__((__packed__)) xio_nop_hdr {
 	uint16_t		hdr_len;	 /* req header length	*/
 	uint16_t		sn;		/* serial number	*/
@@ -242,14 +229,6 @@ struct __attribute__((__packed__)) xio_rdma_cancel_hdr {
 	uint16_t		hdr_len;	 /* req header length	*/
 	uint16_t		sn;		 /* serial number	*/
 	uint32_t		result;
-};
-
-struct xio_work_req {
-	union {
-		struct ibv_send_wr	send_wr;
-		struct ibv_recv_wr	recv_wr;
-	};
-	struct ibv_sge			*sge;
 };
 
 struct xio_rdma_task {
@@ -369,129 +348,6 @@ struct xio_rkey_tbl {
 	uint32_t			new_rkey;
 };
 
-struct xio_rdma_transport {
-	struct xio_transport_base	base;
-	struct xio_cq			*tcq;
-	struct ibv_qp			*qp;
-	struct xio_mempool		*rdma_mempool;
-	struct xio_tasks_pool		*phantom_tasks_pool;
-
-	struct list_head		trans_list_entry;
-
-	/*  tasks queues */
-	struct list_head		tx_ready_list;
-	struct list_head		tx_comp_list;
-	struct list_head		in_flight_list;
-	struct list_head		rx_list;
-	struct list_head		io_list;
-	struct list_head		rdma_rd_req_list;
-	struct list_head		rdma_rd_req_in_flight_list;
-	struct list_head		rdma_rd_rsp_list;
-	struct list_head		rdma_rd_rsp_in_flight_list;
-
-		/* rx parameters */
-	int				rq_depth;	 /* max rcv per qp
-							    allowed */
-	int				rqe_avail;	 /* recv queue elements
-							    avail */
-	uint16_t			sim_peer_credits;  /* simulates the peer
-							    * credits management
-							    * to control nop
-							    * sends
-							    */
-	uint16_t			credits;	  /* the ack this
-							     peer sends */
-	uint16_t			peer_credits;
-
-	uint16_t			pad;
-	uint32_t                        peer_max_header;
-
-	/* fast path params */
-	int				rdma_rd_req_in_flight;
-	int				rdma_rd_rsp_in_flight;
-	int				sqe_avail;
-	enum xio_transport_state	state;
-
-	/* tx parameters */
-	int				kick_rdma_rd_req;
-	int				kick_rdma_rd_rsp;
-	int				reqs_in_flight_nr;
-	int				rsps_in_flight_nr;
-	int				tx_ready_tasks_num;
-	int				max_tx_ready_tasks_num;
-	int				max_inline_data;
-	size_t				max_inline_buf_sz;
-	int				max_sge;
-	uint16_t			req_sig_cnt;
-	uint16_t			rsp_sig_cnt;
-	/* sender window parameters */
-	uint16_t			sn;	   /* serial number */
-	uint16_t			ack_sn;	   /* serial number */
-
-	uint16_t			max_sn;	   /* upper edge of
-						      sender's window + 1 */
-
-	/* receiver window parameters */
-	uint16_t			exp_sn;	   /* lower edge of
-						      receiver's window */
-
-	uint16_t			max_exp_sn; /* upper edge of
-						       receiver's window + 1 */
-
-	uint16_t			pad1;
-
-	/* control path params */
-	int				sq_depth;     /* max snd allowed  */
-	uint16_t			client_initiator_depth;
-	uint16_t			client_responder_resources;
-
-	uint32_t			peer_max_in_iovsz;
-	uint32_t			peer_max_out_iovsz;
-	int32_t				handler_nesting;
-	/* connection's flow control */
-	size_t				membuf_sz;
-
-	struct xio_transport		*transport;
-	struct xio_cm_channel		*cm_channel;
-	struct rdma_cm_id		*cm_id;
-	struct xio_tasks_pool_cls	initial_pool_cls;
-	struct xio_tasks_pool_cls	primary_pool_cls;
-
-	struct xio_rdma_setup_msg	setup_rsp;
-
-	/* for reconnect */
-	struct xio_device		*dev;
-	struct xio_rkey_tbl		*rkey_tbl;
-	struct xio_rkey_tbl		*peer_rkey_tbl;
-
-	/* for reconnect */
-	uint16_t			rkey_tbl_size;
-	uint16_t			peer_rkey_tbl_size;
-
-	uint32_t			ignore_timewait:1;
-	uint32_t			timewait_nr:1; /* flag */
-	uint32_t			ignore_disconnect:1;
-	uint32_t			disconnect_nr:1; /* flag */
-	uint32_t                        beacon_sent:1;
-	uint32_t			reserved:27;
-
-	/* too big to be on stack - use as temporaries */
-	union {
-		struct xio_msg		dummy_msg;
-		struct xio_work_req	dummy_wr;
-	};
-	struct xio_ev_data		close_event;
-	struct xio_ev_data		timewait_exit_event;
-	xio_delayed_work_handle_t	timewait_timeout_work;
-	xio_delayed_work_handle_t	disconnect_timeout_work;
-	struct ibv_send_wr		beacon;
-	struct xio_task			beacon_task;
-	uint32_t			trans_attr_mask;
-	struct xio_transport_attr	trans_attr;
-	struct xio_srq			*xio_srq;
-	HT_ENTRY(rdma_hndl, xio_key_int32) rdma_hndl_htbl;
-};
-
 struct xio_cm_channel {
 	struct rdma_event_channel	*cm_channel;
 	struct xio_context		*ctx;
@@ -511,21 +367,21 @@ int xio_mr_list_free(void);
 const char *ibv_wc_opcode_str(enum ibv_wc_opcode opcode);
 
 void xio_cq_event_handler(int fd, int events, void *data);
-int xio_post_recv(struct xio_rdma_transport *rdma_hndl,
+int xio_post_recv(struct xio_transport_handle *rdma_hndl,
 		  struct xio_task *task, int num_recv_bufs);
-int xio_rdma_rearm_rq(struct xio_rdma_transport *rdma_hndl);
+int xio_rdma_rearm_rq(struct xio_transport_handle *rdma_hndl);
 
-int xio_rdma_send(struct xio_transport_base *transport,
+int xio_rdma_send(struct xio_transport_handle *transport,
 		  struct xio_task *task);
-int xio_rdma_poll(struct xio_transport_base *transport,
+int xio_rdma_poll(struct xio_transport_handle *transport,
 		  long min_nr, long nr,
 		  struct timespec *ts_timeout);
 
-int xio_rdma_cancel_req(struct xio_transport_base *transport,
+int xio_rdma_cancel_req(struct xio_transport_handle *transport,
 			struct xio_msg *req, uint64_t stag,
 			void *ulp_msg, size_t ulp_msg_sz);
 
-int xio_rdma_cancel_rsp(struct xio_transport_base *transport,
+int xio_rdma_cancel_rsp(struct xio_transport_handle *transport,
 			struct xio_task *task, enum xio_status result,
 			void *ulp_msg, size_t ulp_msg_sz);
 
@@ -535,13 +391,13 @@ int xio_rdma_get_max_header_size(void);
 int xio_rdma_get_inline_buffer_size(void);
 
 struct xio_task *xio_rdma_primary_task_alloc(
-				struct xio_rdma_transport *rdma_hndl);
+				struct xio_transport_handle *rdma_hndl);
 
 struct xio_task *xio_rdma_primary_task_lookup(
-					struct xio_rdma_transport *rdma_hndl,
+					struct xio_transport_handle *rdma_hndl,
 					int tid);
 
-void xio_rdma_task_free(struct xio_rdma_transport *rdma_hndl,
+void xio_rdma_task_free(struct xio_transport_handle *rdma_hndl,
 			struct xio_task *task);
 
 static inline void xio_device_get(struct xio_device *dev)
@@ -558,7 +414,7 @@ static inline void xio_device_put(struct xio_device *dev)
 	kref_put(&dev->kref, xio_device_down);
 }
 
-void xio_set_timewait_timer(struct xio_rdma_transport *rdma_hndl);
+void xio_set_timewait_timer(struct xio_transport_handle *rdma_hndl);
 
 /*---------------------------------------------------------------------------*/
 /* xio_reg_mr_add_dev							     */
