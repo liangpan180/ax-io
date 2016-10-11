@@ -3064,7 +3064,7 @@ EXPORT_SYMBOL(xio_unregister_remote_key);
 /*---------------------------------------------------------------------------*/
 /* xio_req_to_transport_base						     */
 /*---------------------------------------------------------------------------*/
-const struct xio_transport_base *xio_req_to_transport_base(
+const struct xio_transport_handle *xio_req_to_transport_base(
 	const struct xio_msg *req)
 {
 	struct xio_task *task = container_of(req, struct xio_task, imsg);

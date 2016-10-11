@@ -4,8 +4,7 @@
 
 if HAVE_INFINIBAND_VERBS
     libxio_rdma_srcdir = -I$(top_srcdir)/src/usr/transport/rdma
-    libxio_rdma_headers = ./transport/rdma/xio_rdma_transport.h   \
-			  ./transport/rdma/xio_rdma_utils.h
+    libxio_rdma_headers = ./transport/rdma/xio_rdma_utils.h
     libxio_rdma_sources = ./transport/rdma/xio_rdma_utils.c       \
                           ./transport/rdma/xio_rdma_verbs.c       \
                           ./transport/rdma/xio_rdma_management.c  \
@@ -70,7 +69,6 @@ libxio_headers = 	./xio/get_clock.h 			\
 			./xio/xio_timers_list.h			\
 			./xio/xio_ev_loop.h			\
 			./transport/xio_mempool.h		\
-			./transport/xio_usr_transport.h		\
 			$(libxio_rdma_headers)			\
 			../common/xio_workqueue.h		\
 			../common/xio_workqueue_priv.h		\
@@ -93,6 +91,7 @@ libxio_headers = 	./xio/get_clock.h 			\
 			../common/xio_sg_table.h		\
 			../common/xio_objpool.h			\
 			../common/xio_transport.h		\
+			../common/xio_common_transport.h	\
 			../common/sys/hashtable.h		\
 			./linux/atomic.h 			\
 			./linux/kernel.h			\
@@ -124,7 +123,6 @@ libxio_la_SOURCES =	$(libxio_headers)		\
 			./xio/xio_sg_table.c		\
 			$(libxio_rdma_sources)		\
 			./transport/xio_mempool.c	\
-			./transport/xio_usr_transport.c	\
 			../common/xio_objpool.c		\
 			../common/xio_options.c		\
 			../common/xio_error.c		\
@@ -139,6 +137,7 @@ libxio_la_SOURCES =	$(libxio_headers)		\
 			../common/xio_nexus_cache.c	\
 			../common/xio_idr.c		\
 			../common/xio_transport.c	\
+			../common/xio_common_transport.c	\
 			../common/xio_connection.c
 
 #libxio_la_LDFLAGS = -shared -rdynamic	 		\

@@ -46,7 +46,7 @@
 #include "xio_protocol.h"
 #include "get_clock.h"
 #include "xio_mem.h"
-#include "xio_usr_transport.h"
+#include "xio_common_transport.h"
 #include "xio_mempool.h"
 #include "xio_protocol.h"
 #include "xio_mbuf.h"
@@ -397,13 +397,13 @@ int xio_dereg_mr_by_dev(struct xio_device *dev)
 /* The following functions is implemented in xio_connection.c,
  * We prefer not to add an include dependency on xio_connection here */
 struct xio_msg;
-const struct xio_transport_base *xio_req_to_transport_base(
+const struct xio_transport_handle *xio_req_to_transport_base(
 	const struct xio_msg *req);
 
 static inline const struct xio_device *xio_req_to_device(
 	const struct xio_msg *req)
 {
-	struct xio_rdma_transport *transport = (struct xio_rdma_transport *)
+	struct xio_transport_handle *transport = (struct xio_transport_handle *)
 		xio_req_to_transport_base(req);
 	return transport->tcq->dev;
 }

@@ -38,21 +38,24 @@
 #ifndef XIO_MBUF_H
 #define XIO_MBUF_H
 
-	struct xio_mbuf_buf {
-		void		*head;
-		void		*tail;
-		uint32_t	buflen;
-		uint32_t	datalen;
-	};
+#include "xio_log.h"
+#include "xio_protocol.h"
 
-	struct xio_mbuf_tlv {
-		void		*head;
-		void		*tail;
-		uint64_t	len;
-		uint32_t	type;
-		uint32_t	pad;
-		void		*val;
-	};
+struct xio_mbuf_buf {
+	void		*head;
+	void		*tail;
+	uint32_t	buflen;
+	uint32_t	datalen;
+};
+
+struct xio_mbuf_tlv {
+	void		*head;
+	void		*tail;
+	uint64_t	len;
+	uint32_t	type;
+	uint32_t	pad;
+	void		*val;
+};
 
 struct xio_mbuf {
 	void			*curr;
