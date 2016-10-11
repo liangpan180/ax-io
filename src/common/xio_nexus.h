@@ -135,7 +135,7 @@ struct xio_nexus_init_attr {
  */
 struct xio_nexus {
 	struct xio_transport		*transport;
-	struct xio_transport_base	*transport_hndl;
+	struct xio_transport_handle	*transport_hndl;
 
 	struct xio_tasks_pool		*primary_tasks_pool;
 	struct xio_tasks_pool		*initial_tasks_pool;
@@ -161,7 +161,7 @@ struct xio_nexus {
 	/* Client side for reconnect */
 	int				server_cid;
 	int				server_cid_pad;
-	struct xio_transport_base	*new_transport_hndl;
+	struct xio_transport_handle	*new_transport_hndl;
 	char				*portal_uri;
 	char				*out_if_addr;
 	uint32_t			trans_attr_mask;

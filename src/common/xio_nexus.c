@@ -55,7 +55,6 @@
 #include "xio_server.h"
 #include "xio_session.h"
 #include "xio_nexus.h"
-#include <xio_env_adv.h>
 
 /*---------------------------------------------------------------------------*/
 /* private structures							     */
@@ -388,7 +387,7 @@ static int xio_nexus_send_setup_req(struct xio_nexus *nexus)
 {
 	struct xio_task	*task;
 	struct xio_nexus_setup_req req = {0};
-	struct xio_transport_base *trans_hndl;
+	struct xio_transport_handle *trans_hndl;
 	int    retval = 0;
 	struct xio_tasks_pool *pool;
 
@@ -927,7 +926,7 @@ static int xio_nexus_on_send_msg_comp(struct xio_nexus *nexus,
 static int xio_nexus_initial_pool_create(struct xio_nexus *nexus)
 {
 	struct xio_tasks_pool_ops	*pool_ops;
-	struct xio_transport_base	*transport_hndl;
+	struct xio_transport_handle	*transport_hndl;
 	struct xio_tasks_pool_cls	pool_cls;
 	struct xio_context		*ctx;
 	enum xio_proto			proto;
@@ -980,7 +979,7 @@ static int xio_nexus_initial_pool_create(struct xio_nexus *nexus)
 static int xio_nexus_primary_pool_create(struct xio_nexus *nexus)
 {
 	struct xio_tasks_pool_ops	*pool_ops;
-	struct xio_transport_base	*transport_hndl;
+	struct xio_transport_handle	*transport_hndl;
 	struct xio_tasks_pool_cls	pool_cls;
 	struct xio_context		*ctx;
 	enum xio_proto			proto;
@@ -1181,7 +1180,7 @@ static int xio_on_server_event(void *observer, void *sender, int event,
 /* xio_nexus_create							     */
 /*---------------------------------------------------------------------------*/
 struct xio_nexus *xio_nexus_create(struct xio_nexus *parent_nexus,
-				   struct xio_transport_base *transport_hndl)
+				   struct xio_transport_handle *transport_hndl)
 {
 	struct xio_nexus		*nexus;
 	int			retval;

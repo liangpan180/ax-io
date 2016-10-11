@@ -266,7 +266,7 @@ int xio_on_credits_ack_send_comp(struct xio_connection *connection,
 int xio_on_credits_ack_recv(struct xio_connection *connection,
 			    struct xio_task *task);
 
-const struct xio_transport_base *xio_req_to_transport_base(
+const struct xio_transport_handle *xio_req_to_transport_base(
 	const struct xio_msg *req);
 
 int xio_connection_ioctl(struct xio_connection *connection, int con_optname,

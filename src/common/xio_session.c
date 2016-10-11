@@ -58,7 +58,6 @@
 #include "xio_sessions_cache.h"
 #include "xio_session.h"
 #include "xio_session_priv.h"
-#include <xio_env_adv.h>
 
 /*---------------------------------------------------------------------------*/
 /* forward declarations							     */

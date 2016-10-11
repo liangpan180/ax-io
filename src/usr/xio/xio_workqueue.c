@@ -37,7 +37,6 @@
  */
 #include <libxio.h>
 #include <xio_os.h>
-#include <xio_env_adv.h>
 
 #include "xio_log.h"
 #include "xio_common.h"

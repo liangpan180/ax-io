@@ -56,7 +56,6 @@
 #include "xio_nexus.h"
 #include "xio_session.h"
 #include "xio_connection.h"
-#include <xio_env_adv.h>
 
 #define MSG_POOL_SZ			1024
 #define XIO_IOV_THRESHOLD		20
@@ -3065,7 +3064,7 @@ EXPORT_SYMBOL(xio_unregister_remote_key);
 /*---------------------------------------------------------------------------*/
 /* xio_req_to_transport_base						     */
 /*---------------------------------------------------------------------------*/
-const struct xio_transport_base *xio_req_to_transport_base(
+const struct xio_transport_handle *xio_req_to_transport_base(
 	const struct xio_msg *req)
 {
 	struct xio_task *task = container_of(req, struct xio_task, imsg);

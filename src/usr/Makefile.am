@@ -4,8 +4,7 @@
 
 if HAVE_INFINIBAND_VERBS
     libxio_rdma_srcdir = -I$(top_srcdir)/src/usr/transport/rdma
-    libxio_rdma_headers = ./transport/rdma/xio_rdma_transport.h   \
-			  ./transport/rdma/xio_rdma_utils.h
+    libxio_rdma_headers = ./transport/rdma/xio_rdma_utils.h
     libxio_rdma_sources = ./transport/rdma/xio_rdma_utils.c       \
                           ./transport/rdma/xio_rdma_verbs.c       \
                           ./transport/rdma/xio_rdma_management.c  \
@@ -19,12 +18,11 @@ else
 endif
 
 AM_CFLAGS = -fPIC -DPIC  			\
-	    -I$(top_srcdir)/src/libxio_os/linuxapp	\
+	    -I$(top_srcdir)/src/env		\
 	    -I$(top_srcdir)/src/usr 		\
 	    -I$(top_srcdir)/src/usr/xio		\
 	    -I$(top_srcdir)/src/usr/transport	\
 	    $(libxio_rdma_srcdir)		\
-	    -I$(top_srcdir)/src/usr/transport/tcp	\
 	    -I$(top_srcdir)/src/common  	\
 	    -I$(top_srcdir)/include		\
 	    @AM_CFLAGS@
@@ -60,9 +58,7 @@ libxio_includedir = $(includedir)/
 
 # the list of header files that belong to the library (to be installed later)
 libxio_include_HEADERS = $(top_srcdir)/include/libxio.h  	\
-			 $(top_srcdir)/include/xio_base.h	\
-			 $(top_srcdir)/include/xio_user.h	\
-			 $(top_srcdir)/include/xio_predefs.h
+			 $(top_srcdir)/include/xio_base.h
 
 
 libxio_headers = 	./xio/get_clock.h 			\
@@ -73,9 +69,7 @@ libxio_headers = 	./xio/get_clock.h 			\
 			./xio/xio_timers_list.h			\
 			./xio/xio_ev_loop.h			\
 			./transport/xio_mempool.h		\
-			./transport/xio_usr_transport.h		\
 			$(libxio_rdma_headers)			\
-			./transport/tcp/xio_tcp_transport.h	\
 			../common/xio_workqueue.h		\
 			../common/xio_workqueue_priv.h		\
 			../common/xio_common.h			\
@@ -97,6 +91,7 @@ libxio_headers = 	./xio/get_clock.h 			\
 			../common/xio_sg_table.h		\
 			../common/xio_objpool.h			\
 			../common/xio_transport.h		\
+			../common/xio_common_transport.h	\
 			../common/sys/hashtable.h		\
 			./linux/atomic.h 			\
 			./linux/kernel.h			\
@@ -127,10 +122,7 @@ libxio_la_SOURCES =	$(libxio_headers)		\
 			./xio/xio_sg_iovptr.c		\
 			./xio/xio_sg_table.c		\
 			$(libxio_rdma_sources)		\
-			./transport/tcp/xio_tcp_management.c	\
-			./transport/tcp/xio_tcp_datapath.c	\
 			./transport/xio_mempool.c	\
-			./transport/xio_usr_transport.c	\
 			../common/xio_objpool.c		\
 			../common/xio_options.c		\
 			../common/xio_error.c		\
@@ -145,6 +137,7 @@ libxio_la_SOURCES =	$(libxio_headers)		\
 			../common/xio_nexus_cache.c	\
 			../common/xio_idr.c		\
 			../common/xio_transport.c	\
+			../common/xio_common_transport.c	\
 			../common/xio_connection.c
 
 #libxio_la_LDFLAGS = -shared -rdynamic	 		\

@@ -38,6 +38,8 @@
 #ifndef XIO_TASK_H
 #define XIO_TASK_H
 
+#include "xio_mbuf.h"
+
 #ifndef list_last_entry
 #define list_last_entry(ptr, type, member) \
 	list_entry((ptr)->prev, type, member)
