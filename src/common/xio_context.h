@@ -41,10 +41,6 @@
 #define xio_ctx_work_t  xio_work_handle_t
 #define xio_ctx_delayed_work_t  xio_delayed_work_handle_t
 
-#ifdef XIO_THREAD_SAFE_DEBUG
-#define BACKTRACE_BUFFER_SIZE 2048
-#endif
-
 /*---------------------------------------------------------------------------*/
 /* enum									     */
 /*---------------------------------------------------------------------------*/
@@ -124,13 +120,6 @@ struct xio_context {
 	int				max_conns_per_ctx;
 	int				rq_depth;
 	int				pad;
-#ifdef XIO_THREAD_SAFE_DEBUG
-	int                             nptrs;
-	int				pad1;
-	pthread_mutex_t                 dbg_thread_mutex;
-	void                            *buffer[BACKTRACE_BUFFER_SIZE];
-#endif
-
 };
 
 /*---------------------------------------------------------------------------*/
@@ -302,12 +291,6 @@ static inline void xio_context_msg_pool_put(void *obj)
 /*---------------------------------------------------------------------------*/
 int xio_ctx_pool_create(struct xio_context *ctx,
 		        enum xio_context_pool_class pool_cls);
-
-
-#ifdef XIO_THREAD_SAFE_DEBUG
-int xio_ctx_debug_thread_lock(struct xio_context *ctx);
-int xio_ctx_debug_thread_unlock(struct xio_context *ctx);
-#endif
 
 #endif /*XIO_CONTEXT_H */
 

@@ -55,10 +55,6 @@
 #include "xio_usr_utils.h"
 #include "xio_init.h"
 
-#ifdef XIO_THREAD_SAFE_DEBUG
-#include <execinfo.h>
-#endif
-
 #define MSGPOOL_INIT_NR	8
 #define MSGPOOL_GROW_NR	64
 
@@ -183,9 +179,6 @@ struct xio_context *xio_context_create(struct xio_context_params *ctx_params,
 			goto cleanup2;
 		}
 	}
-#ifdef XIO_THREAD_SAFE_DEBUG
-	pthread_mutex_init(&ctx->dbg_thread_mutex, NULL);
-#endif
 	spin_lock_init(&ctx->ctx_list_lock);
 
 	DEBUG_LOG("context created. context:%p\n", ctx);
@@ -298,9 +291,6 @@ void xio_context_destroy(struct xio_context *ctx)
 	ctx->ev_loop = NULL;
 
 	xio_ctx_task_pools_destroy(ctx);
-#ifdef XIO_THREAD_SAFE_DEBUG
-	pthread_mutex_destroy(&ctx->dbg_thread_mutex);
-#endif
 
 	XIO_OBSERVABLE_DESTROY(&ctx->observable);
 	ufree(ctx);
@@ -488,10 +478,6 @@ int xio_context_run_loop(struct xio_context *ctx, int timeout_ms)
 {
 	int retval = 0;
 
-#ifdef XIO_THREAD_SAFE_DEBUG
-	xio_ctx_debug_thread_lock(ctx);
-#endif
-
 	ctx->is_running = 1;
 	retval = (timeout_ms == XIO_INFINITE) ? xio_ev_loop_run(ctx->ev_loop) :
 		  xio_ev_loop_run_timeout(ctx->ev_loop, timeout_ms);
@@ -499,10 +485,6 @@ int xio_context_run_loop(struct xio_context *ctx, int timeout_ms)
 
 	if (unlikely(ctx->defered_destroy))
 		xio_context_destroy(ctx);
-
-#ifdef XIO_THREAD_SAFE_DEBUG
-	xio_ctx_debug_thread_unlock(ctx);
-#endif
 
 	return retval;
 }
@@ -778,43 +760,3 @@ int xio_ctx_pool_create(struct xio_context *ctx,
 
 	return 0;
 }
-
-#ifdef XIO_THREAD_SAFE_DEBUG
-
-void xio_ctx_debug_thread_print_stack(int frames, void * const *callstack)
-{
-	char **strs;
-	int i;
-	ERROR_LOG("\tstack trace is\n");
-	strs = backtrace_symbols(callstack, frames);
-	for (i = 0; i < frames; ++i) {
-		 ERROR_LOG("%s\n", strs[i]);
-	}
-	free(strs);
-}
-
-int xio_ctx_debug_thread_lock(struct xio_context *ctx)
-{
-	if (!pthread_mutex_trylock(&ctx->dbg_thread_mutex)) {
-		/* mutex was acquired - saving the current stacktrace */
-		ctx->nptrs = backtrace(ctx->buffer, BACKTRACE_BUFFER_SIZE);
-		return 1;
-	}
-	ERROR_LOG("trying to lock an already locked lock for ctx %p\n", ctx);
-	xio_ctx_debug_thread_print_stack(ctx->nptrs, ctx->buffer);
-	ctx->nptrs = backtrace(ctx->buffer, BACKTRACE_BUFFER_SIZE);
-	xio_ctx_debug_thread_print_stack(ctx->nptrs, ctx->buffer);
-
-	/*since lock was unsuccessful, wait until the lock becomes available */
-	pthread_mutex_lock(&ctx->dbg_thread_mutex);
-	return 0;
-}
-
-int xio_ctx_debug_thread_unlock(struct xio_context *ctx)
-{
-	pthread_mutex_unlock(&ctx->dbg_thread_mutex);
-	return 0;
-}
-
-#endif
-

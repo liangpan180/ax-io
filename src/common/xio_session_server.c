@@ -162,15 +162,9 @@ int xio_on_setup_req_recv(struct xio_connection *connection,
 
 	/* notify the upper layer */
 	if (connection->ses_ops.on_new_session) {
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_unlock(connection->ctx);
-#endif
 		retval = connection->ses_ops.on_new_session(
 					session, &req,
 					connection->cb_user_context);
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_lock(connection->ctx);
-#endif
 		if (retval)
 			goto cleanup2;
 	} else {
@@ -202,16 +196,10 @@ cleanup1:
 	kfree(req.uri);
 
 	if (session->ses_ops.on_session_event) {
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_unlock(connection->ctx);
-#endif
 		error_event.reason = (enum xio_status)xio_errno();
 		session->ses_ops.on_session_event(
 				session, &error_event,
 				session->cb_user_context);
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_lock(connection->ctx);
-#endif
 	}
 	return 0;
 }
