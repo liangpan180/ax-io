@@ -197,12 +197,6 @@ AC_ARG_VAR([FIO_ROOT],[The root directory of the fio suite])
 AC_SUBST([FIO_ROOT])
 
 ##########################################################################
-
-subdirs="src/usr";
-
-##########################################################################
-
-##########################################################################
 # add version.c uses strings to get GIT hash version
 ##########################################################################
 if test -d "${GIT_DIR:-${ac_top_srcdir:-./}/.git}" ; then
@@ -224,21 +218,16 @@ AC_MSG_CHECKING([for git head])
 AC_MSG_RESULT([$GITHEAD])
 AC_DEFINE_UNQUOTED([XIO_GITHEAD], ["$GITHEAD"], [Git commit used to build xio library])
 
-
-
-
 # distribute additional compiler and linker flags
 # --> set these variables instead of CFLAGS or LDFLAGS
 AC_SUBST([AM_CFLAGS])
 AC_SUBST([AM_LDFLAGS])
 AC_SUBST([LIBS])
-AC_SUBST([subdirs])
-
 
 # files to generate via autotools (.am or .in source files)
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([Doxyfile])
-AC_CONFIG_FILES([src/usr/Makefile])
+AC_CONFIG_FILES([src/Makefile])
 
 # generate the final Makefile etc.
 AC_OUTPUT
