@@ -454,15 +454,7 @@ cleanup:
 /*---------------------------------------------------------------------------*/
 static int xio_nexus_swap(struct xio_nexus *old, struct xio_nexus *_new)
 {
-	struct xio_transport		*transport;
 	struct xio_tasks_pool		*initial_tasks_pool;
-
-	if (old->transport != _new->transport) {
-		ERROR_LOG("can't swap not the same transport\n");
-		return -1;
-	}
-
-	transport = old->transport;
 
 	/* SWAP observers */
 	/* disconnect observers */
@@ -1190,7 +1182,6 @@ struct xio_nexus *xio_nexus_create(struct xio_nexus *parent_nexus,
 
 	/* add the nexus to temporary list */
 	nexus->transport_hndl		= transport_hndl;
-	nexus->transport		= parent_nexus->transport;
 	nexus->server			= parent_nexus->server;
 	nexus->srq_enabled		= parent_nexus->srq_enabled;
 	kref_init(&nexus->kref);
@@ -1916,7 +1907,6 @@ cleanup:
 /*---------------------------------------------------------------------------*/
 int xio_nexus_reconnect(struct xio_nexus *nexus)
 {
-	struct xio_transport *transport;
 	struct xio_context *ctx;
 	int retval;
 
@@ -1927,7 +1917,6 @@ int xio_nexus_reconnect(struct xio_nexus *nexus)
 		return -1;
 	}
 
-	transport = nexus->transport;
 	ctx = nexus->transport_hndl->ctx;
 
 	nexus->new_transport_hndl = xio_rdma_open(ctx,
@@ -2190,11 +2179,6 @@ static int xio_nexus_xmit(struct xio_nexus *nexus)
 	int		retval = 0;
 	struct xio_task *task;
 
-	if (!nexus->transport) {
-		ERROR_LOG("transport not initialized\n");
-		return -1;
-	}
-
 	while (1) {
 		if (list_empty(&nexus->tx_queue))
 			break;
@@ -2237,11 +2221,6 @@ static int xio_nexus_xmit(struct xio_nexus *nexus)
 int xio_nexus_send(struct xio_nexus *nexus, struct xio_task *task)
 {
 	int		retval;
-
-	if (!nexus->transport) {
-		ERROR_LOG("transport not initialized\n");
-		return -1;
-	}
 
 	/* push to end of the queue */
 	list_move_tail(&task->tasks_list_entry, &nexus->tx_queue);

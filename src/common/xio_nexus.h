@@ -134,7 +134,6 @@ struct xio_nexus_init_attr {
  * Connection data type
  */
 struct xio_nexus {
-	struct xio_transport		*transport;
 	struct xio_transport_handle	*transport_hndl;
 
 	struct xio_tasks_pool		*primary_tasks_pool;
