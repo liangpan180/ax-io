@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
 	/* disable nagle algorithm for tcp */
 	optval = 1;
 	xio_set_opt(NULL,
-			XIO_OPTLEVEL_TCP, XIO_OPTNAME_TCP_NO_DELAY,
+			XIO_OPTLEVEL_RDMA, XIO_OPTNAME_TCP_NO_DELAY,
 			&optval, sizeof(optval));
 
 	if (user_param.machine_type == CLIENT)

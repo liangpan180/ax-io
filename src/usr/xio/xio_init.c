@@ -51,25 +51,6 @@ int		page_size;
 double		g_mhz;
 struct xio_idr  *usr_idr = NULL;
 
-#ifdef HAVE_INFINIBAND_VERBS_H
-extern struct xio_transport xio_rdma_transport;
-#endif
-
-struct xio_transport *xio_rdma_get_transport_func_list(void);
-
-typedef struct xio_transport *(*get_transport_func_list_t)(void);
-
-static get_transport_func_list_t  transport_func_list_tbl[] = {
-#ifdef HAVE_INFINIBAND_VERBS_H
-	xio_rdma_get_transport_func_list,
-#endif
-};
-
-#define  transport_tbl_sz (sizeof(transport_func_list_tbl) \
-	/ sizeof(transport_func_list_tbl[0]))
-
-static struct xio_transport  *transport_tbl[transport_tbl_sz];
-
 static volatile int32_t	ini_refcnt; /*= 0 */
 static DEFINE_MUTEX(ini_mutex);
 
@@ -80,22 +61,11 @@ extern double xio_get_cpu_mhz(void);
 /*---------------------------------------------------------------------------*/
 static void xio_dtor(void)
 {
-	size_t i;
-
-	for (i = 0; i < transport_tbl_sz; i++) {
-		if (transport_tbl[i] == NULL)
-			continue;
-		if (transport_tbl[i]->release)
-			transport_tbl[i]->release(transport_tbl[i]);
-
-		if (transport_tbl[i]->dtor)
-			transport_tbl[i]->dtor();
-
-		xio_unreg_transport(transport_tbl[i]);
-	}
 	xio_idr_destroy(usr_idr);
 	xio_thread_data_destruct();
 	xio_env_cleanup();
+	xio_rdma_transport_release();
+	xio_rdma_transport_destructor();
 }
 
 /*---------------------------------------------------------------------------*/
@@ -103,12 +73,8 @@ static void xio_dtor(void)
 /*---------------------------------------------------------------------------*/
 static void xio_ctor(void)
 {
-	size_t i;
-
 	xio_env_startup();
-	for (i = 0; i < transport_tbl_sz; i++)
-		if (!transport_tbl[i])
-			transport_tbl[i] = transport_func_list_tbl[i]();
+	xio_rdma_transport_constructor();
 
 	page_size = xio_get_page_size();
 	if (page_size < 0)
@@ -120,15 +86,6 @@ static void xio_ctor(void)
 		ERROR_LOG("usr_idr creation failed");
 	sessions_cache_construct();
 	nexus_cache_construct();
-
-	for (i = 0; i < transport_tbl_sz; i++) {
-		if (transport_tbl[i] == NULL)
-			continue;
-		xio_reg_transport(transport_tbl[i]);
-
-		if (transport_tbl[i]->ctor)
-			transport_tbl[i]->ctor();
-	}
 }
 
 void xio_init(void)

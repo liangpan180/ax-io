@@ -214,12 +214,6 @@ int xio_nexus_accept(struct xio_nexus *nexus);
 int xio_nexus_reject(struct xio_nexus *nexus);
 
 /*---------------------------------------------------------------------------*/
-/* xio_nexus_poll							     */
-/*---------------------------------------------------------------------------*/
-int xio_nexus_poll(struct xio_nexus *nexus,
-		   long min_nr, long nr, struct timespec *timeout);
-
-/*---------------------------------------------------------------------------*/
 /* xio_nexus_send							     */
 /*---------------------------------------------------------------------------*/
 int xio_nexus_send(struct xio_nexus *nexus, struct xio_task *task);
@@ -306,16 +300,6 @@ int xio_nexus_get_peer_addr(struct xio_nexus *nexus,
 /*---------------------------------------------------------------------------*/
 int xio_nexus_get_local_addr(struct xio_nexus *nexus,
 			     struct sockaddr_storage *sa, socklen_t len);
-
-/*---------------------------------------------------------------------------*/
-/* xio_nexus_get_validators_cls						     */
-/*---------------------------------------------------------------------------*/
-static inline
-struct xio_transport_msg_validators_cls *xio_nexus_get_validators_cls(
-						struct xio_nexus *nexus)
-{
-	return &nexus->transport->validators_cls;
-}
 
 /*---------------------------------------------------------------------------*/
 /* xio_nexus_get_proto							     */

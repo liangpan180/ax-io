@@ -41,8 +41,6 @@
 #define xio_ctx_work_t  xio_work_handle_t
 #define xio_ctx_delayed_work_t  xio_delayed_work_handle_t
 
-#define XIO_PROTO_LAST  2	/* from enum xio_proto */
-
 #ifdef XIO_THREAD_SAFE_DEBUG
 #define BACKTRACE_BUFFER_SIZE 2048
 #endif
@@ -86,12 +84,11 @@ struct xio_statistics {
 struct xio_context {
 	void				*ev_loop;
 	void				*mempool;
-	/* pools per transport */
-	struct xio_tasks_pool		*primary_tasks_pool[XIO_PROTO_LAST];
-	struct xio_tasks_pool_ops	*primary_pool_ops[XIO_PROTO_LAST];
+	struct xio_tasks_pool		*primary_tasks_pool;
+	struct xio_tasks_pool_ops	*primary_pool_ops;
 
-	struct xio_tasks_pool		*initial_tasks_pool[XIO_PROTO_LAST];
-	struct xio_tasks_pool_ops	*initial_pool_ops[XIO_PROTO_LAST];
+	struct xio_tasks_pool		*initial_tasks_pool;
+	struct xio_tasks_pool_ops	*initial_pool_ops;
 
 	/* pool per connection */
 	struct xio_objpool		*msg_pool;
@@ -303,7 +300,7 @@ static inline void xio_context_msg_pool_put(void *obj)
 /*---------------------------------------------------------------------------*/
 /* xio_ctx_pool_create							     */
 /*---------------------------------------------------------------------------*/
-int xio_ctx_pool_create(struct xio_context *ctx, enum xio_proto proto,
+int xio_ctx_pool_create(struct xio_context *ctx,
 		        enum xio_context_pool_class pool_cls);
 
 

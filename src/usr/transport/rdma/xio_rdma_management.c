@@ -43,7 +43,6 @@
 #include "xio_log.h"
 #include "xio_common.h"
 #include "xio_observer.h"
-#include "xio_protocol.h"
 #include "xio_mbuf.h"
 #include "xio_task.h"
 #include "xio_common_transport.h"
@@ -101,15 +100,6 @@ struct xio_rdma_options			rdma_options = {
 /*---------------------------------------------------------------------------*/
 /* forward declaration							     */
 /*---------------------------------------------------------------------------*/
-static struct xio_transport_handle *xio_rdma_open(
-		struct xio_transport	*transport,
-		struct xio_context	*ctx,
-		struct xio_observer	*observer,
-		uint32_t		trans_attr_mask,
-		struct xio_transport_init_attr *attr);
-
-static int xio_rdma_reject(struct xio_transport_handle *transport);
-static void xio_rdma_close(struct xio_transport_handle *transport);
 static struct xio_cm_channel *xio_cm_channel_get(struct xio_context *ctx);
 static void xio_rdma_post_close(struct xio_transport_handle *trans_hndl);
 static int xio_rdma_flush_all_tasks(struct xio_transport_handle *transport_hndl);
@@ -904,7 +894,7 @@ static inline void xio_cm_channel_release(struct xio_cm_channel *channel)
 /*---------------------------------------------------------------------------*/
 /* xio_rdma_context_shutdown						     */
 /*---------------------------------------------------------------------------*/
-static int xio_rdma_context_shutdown(struct xio_transport_handle *trans_hndl,
+int xio_rdma_context_shutdown(struct xio_transport_handle *trans_hndl,
 				     struct xio_context *ctx)
 {
 	DEBUG_LOG("context: [shutdown] trans_hndl:%p\n", trans_hndl);
@@ -2117,7 +2107,6 @@ static void  on_cm_connect_request(struct rdma_cm_event *ev,
 	}
 
 	child_hndl = xio_rdma_open(
-				parent_hndl->transport,
 				parent_hndl->ctx,
 				NULL, 0, NULL);
 	if (!child_hndl) {
@@ -2682,8 +2671,7 @@ free:
 /*---------------------------------------------------------------------------*/
 /* xio_rdma_open		                                             */
 /*---------------------------------------------------------------------------*/
-static struct xio_transport_handle *xio_rdma_open(
-		struct xio_transport	*transport,
+struct xio_transport_handle *xio_rdma_open(
 		struct xio_context	*ctx,
 		struct xio_observer	*observer,
 		uint32_t		trans_attr_mask,
@@ -2718,7 +2706,6 @@ static struct xio_transport_handle *xio_rdma_open(
 	transport_hndl->portal_uri	= NULL;
 	transport_hndl->proto		= XIO_PROTO_RDMA;
 	kref_init(&transport_hndl->kref);
-	transport_hndl->transport		= transport;
 	transport_hndl->cm_id		= NULL;
 	transport_hndl->qp			= NULL;
 	transport_hndl->tcq			= NULL;
@@ -2798,7 +2785,7 @@ void xio_rdma_close_cb(struct kref *kref)
 /*---------------------------------------------------------------------------*/
 /* xio_rdma_close		                                             */
 /*---------------------------------------------------------------------------*/
-static void xio_rdma_close(struct xio_transport_handle *transport_hndl)
+void xio_rdma_close(struct xio_transport_handle *transport_hndl)
 {
 	int	retval = 0;
 
@@ -2855,7 +2842,7 @@ static void xio_rdma_close(struct xio_transport_handle *transport_hndl)
 /* makes new_trans_hndl be the copy of old_trans_hndl, closes new_trans_hndl */
 /* Note old and new are in dup2 terminology opposite to reconnect terms	     */
 /* --------------------------------------------------------------------------*/
-static int xio_rdma_dup2(struct xio_transport_handle *old_trans_hndl,
+int xio_rdma_dup2(struct xio_transport_handle *old_trans_hndl,
 			 struct xio_transport_handle **new_trans_hndl)
 {
 	int ret = 0;
@@ -2909,7 +2896,7 @@ static int xio_new_rkey(struct xio_transport_handle *transport_hndl, uint32_t *k
 /*---------------------------------------------------------------------------*/
 /* xio_rdma_update_task		                                             */
 /*---------------------------------------------------------------------------*/
-static int xio_rdma_update_task(struct xio_transport_handle *transport_hndl,
+int xio_rdma_update_task(struct xio_transport_handle *transport_hndl,
 				struct xio_task *task)
 {
 	XIO_TO_RDMA_TASK(task, rdma_task);
@@ -2928,7 +2915,7 @@ static int xio_rdma_update_task(struct xio_transport_handle *transport_hndl,
 	return 0;
 }
 
-static int xio_rdma_update_rkey(struct xio_transport_handle *transport_hndl,
+int xio_rdma_update_rkey(struct xio_transport_handle *transport_hndl,
 				uint32_t *rkey)
 {
 	return xio_new_rkey(transport_hndl, rkey);
@@ -2937,7 +2924,7 @@ static int xio_rdma_update_rkey(struct xio_transport_handle *transport_hndl,
 /*---------------------------------------------------------------------------*/
 /* xio_rdma_accept		                                             */
 /*---------------------------------------------------------------------------*/
-static int xio_rdma_accept(struct xio_transport_handle *transport_hndl)
+int xio_rdma_accept(struct xio_transport_handle *transport_hndl)
 {
 	int				retval;
 	struct rdma_conn_param		cm_params;
@@ -2988,7 +2975,7 @@ static int xio_rdma_accept(struct xio_transport_handle *transport_hndl)
 /*---------------------------------------------------------------------------*/
 /* xio_rdma_reject		                                             */
 /*---------------------------------------------------------------------------*/
-static int xio_rdma_reject(struct xio_transport_handle *transport_hndl)
+int xio_rdma_reject(struct xio_transport_handle *transport_hndl)
 {
 	int				retval;
 
@@ -3068,7 +3055,7 @@ exit1:
 /*---------------------------------------------------------------------------*/
 /* xio_rdma_connect		                                             */
 /*---------------------------------------------------------------------------*/
-static int xio_rdma_connect(struct xio_transport_handle *trans_hndl,
+int xio_rdma_connect(struct xio_transport_handle *trans_hndl,
 			    const char *portal_uri, const char *out_if_addr)
 {
 	trans_hndl->is_client = 1;
@@ -3103,7 +3090,7 @@ exit1:
 /*---------------------------------------------------------------------------*/
 /* xio_rdma_listen							     */
 /*---------------------------------------------------------------------------*/
-static int xio_rdma_listen(struct xio_transport_handle *transport_hndl,
+int xio_rdma_listen(struct xio_transport_handle *transport_hndl,
 			   const char *portal_uri,
 			   uint16_t *src_port, int backlog)
 {
@@ -3185,7 +3172,7 @@ static int xio_rdma_enable_fork_support(void)
 /*---------------------------------------------------------------------------*/
 /* xio_rdma_set_opt                                                          */
 /*---------------------------------------------------------------------------*/
-static int xio_rdma_set_opt(void *xio_obj,
+int xio_rdma_set_opt(void *xio_obj,
 			    int optname, const void *optval, int optlen)
 {
 	switch (optname) {
@@ -3221,7 +3208,7 @@ static int xio_rdma_set_opt(void *xio_obj,
 /*---------------------------------------------------------------------------*/
 /* xio_rdma_get_opt                                                          */
 /*---------------------------------------------------------------------------*/
-static int xio_rdma_get_opt(void  *xio_obj,
+int xio_rdma_get_opt(void  *xio_obj,
 			    int optname, void *optval, int *optlen)
 {
 	switch (optname) {
@@ -3259,7 +3246,7 @@ static int xio_rdma_get_opt(void  *xio_obj,
 /*---------------------------------------------------------------------------*/
 /* xio_rdma_transport_modify						     */
 /*---------------------------------------------------------------------------*/
-static int xio_rdma_transport_modify(struct xio_transport_handle *transport_hndl,
+int xio_rdma_transport_modify(struct xio_transport_handle *transport_hndl,
 				     struct xio_transport_attr *attr,
 				     int attr_mask)
 {
@@ -3290,7 +3277,7 @@ static int xio_rdma_transport_modify(struct xio_transport_handle *transport_hndl
 /*---------------------------------------------------------------------------*/
 /* xio_rdma_transport_query						     */
 /*---------------------------------------------------------------------------*/
-static int xio_rdma_transport_query(struct xio_transport_handle *transport_hndl,
+int xio_rdma_transport_query(struct xio_transport_handle *transport_hndl,
 				    struct xio_transport_attr *attr,
 				    int attr_mask)
 {
@@ -3389,7 +3376,7 @@ static void xio_rdma_init(void)
 /*---------------------------------------------------------------------------*/
 /* xio_rdma_transport_init						     */
 /*---------------------------------------------------------------------------*/
-static int xio_rdma_transport_init(struct xio_transport *transport)
+int xio_rdma_transport_init()
 {
 	pthread_once(&ctor_key_once, xio_rdma_init);
 
@@ -3422,7 +3409,7 @@ static void xio_rdma_release(void)
 /*---------------------------------------------------------------------------*/
 /* xio_rdma_transport_release		                                     */
 /*---------------------------------------------------------------------------*/
-static void xio_rdma_transport_release(struct xio_transport *transport)
+void xio_rdma_transport_release()
 {
 	if (ctor_key_once == PTHREAD_ONCE_INIT)
 		return;
@@ -3433,7 +3420,7 @@ static void xio_rdma_transport_release(struct xio_transport *transport)
 /*---------------------------------------------------------------------------*/
 /* xio_is_valid_in_req							     */
 /*---------------------------------------------------------------------------*/
-static int xio_rdma_is_valid_in_req(struct xio_msg *msg)
+int xio_rdma_is_valid_in_req(struct xio_msg *msg)
 {
 	struct xio_vmsg		*vmsg = &msg->in;
 	struct xio_sg_table_ops	*sgtbl_ops;
@@ -3479,7 +3466,7 @@ static int xio_rdma_is_valid_in_req(struct xio_msg *msg)
 /*---------------------------------------------------------------------------*/
 /* xio_rdma_is_valid_out_msg						     */
 /*---------------------------------------------------------------------------*/
-static int xio_rdma_is_valid_out_msg(struct xio_msg *msg)
+int xio_rdma_is_valid_out_msg(struct xio_msg *msg)
 {
 	struct xio_vmsg		*vmsg = &msg->out;
 	struct xio_sg_table_ops *sgtbl_ops;
@@ -3540,7 +3527,7 @@ static int xio_rdma_is_valid_out_msg(struct xio_msg *msg)
 /*---------------------------------------------------------------------------*/
 /* xio_rdma_get_pools_ops						     */
 /*---------------------------------------------------------------------------*/
-static void xio_rdma_get_pools_ops(
+void xio_rdma_get_pools_ops(
 			struct xio_transport_handle *trans_hndl,
 			struct xio_tasks_pool_ops **initial_pool_ops,
 			struct xio_tasks_pool_ops **primary_pool_ops)
@@ -3552,7 +3539,7 @@ static void xio_rdma_get_pools_ops(
 /*---------------------------------------------------------------------------*/
 /* xio_rdma_set_pools_cls						     */
 /*---------------------------------------------------------------------------*/
-static void xio_rdma_set_pools_cls(
+void xio_rdma_set_pools_cls(
 			struct xio_transport_handle *transport_hndl,
 			struct xio_tasks_pool_cls *initial_pool_cls,
 			struct xio_tasks_pool_cls *primary_pool_cls)
@@ -3599,37 +3586,6 @@ void xio_rdma_transport_destructor(void)
 	dtor_key_once = PTHREAD_ONCE_INIT;
 }
 
-struct xio_transport xio_rdma_transport = {
-	.name			= "rdma",
-	.ctor			= xio_rdma_transport_constructor,
-	.dtor			= xio_rdma_transport_destructor,
-	.init			= xio_rdma_transport_init,
-	.release		= xio_rdma_transport_release,
-	.context_shutdown	= xio_rdma_context_shutdown,
-	.open			= xio_rdma_open,
-	.connect		= xio_rdma_connect,
-	.listen			= xio_rdma_listen,
-	.accept			= xio_rdma_accept,
-	.reject			= xio_rdma_reject,
-	.close			= xio_rdma_close,
-	.dup2			= xio_rdma_dup2,
-	.update_task		= xio_rdma_update_task,
-	.update_rkey		= xio_rdma_update_rkey,
-	.send			= xio_rdma_send,
-	.poll			= NULL,
-	.set_opt		= xio_rdma_set_opt,
-	.get_opt		= xio_rdma_get_opt,
-	.cancel_req		= xio_rdma_cancel_req,
-	.cancel_rsp		= xio_rdma_cancel_rsp,
-	.get_pools_setup_ops	= xio_rdma_get_pools_ops,
-	.set_pools_cls		= xio_rdma_set_pools_cls,
-	.modify			= xio_rdma_transport_modify,
-	.query			= xio_rdma_transport_query,
-
-	.validators_cls.is_valid_in_req  = xio_rdma_is_valid_in_req,
-	.validators_cls.is_valid_out_msg = xio_rdma_is_valid_out_msg,
-};
-
 /*---------------------------------------------------------------------------*/
 /* xio_is_rdma_dev_exist                                                     */
 /*---------------------------------------------------------------------------*/
@@ -3653,22 +3609,4 @@ exit:
 	ibv_free_device_list(dev_list);
 
     return retval;
-}
-
-/*---------------------------------------------------------------------------*/
-/* xio_rdma_get_transport_func_list                                          */
-/*---------------------------------------------------------------------------*/
-struct xio_transport *xio_rdma_get_transport_func_list(void)
-{
-	/* we wish to compile and link with rdma but
-	 * infiniband devices are not installed on the machines.
-	 * this case ignore rdma (only tcp is available for usage)
-	 */
-    if (xio_is_rdma_dev_exist() == -1) {
-	    DEBUG_LOG("no capable device installed\n");
-	    INIT_LIST_HEAD(&dev_list);
-	    return NULL;
-	}
-
-	return &xio_rdma_transport;
 }

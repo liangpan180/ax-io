@@ -257,7 +257,6 @@ struct xio_transport_handle {
 	/* connection's flow control */
 	size_t				membuf_sz;
 
-	struct xio_transport		*transport;
 	struct xio_cm_channel		*cm_channel;
 	struct rdma_cm_id		*cm_id;
 	struct xio_tasks_pool_cls	initial_pool_cls;
@@ -298,11 +297,6 @@ struct xio_transport_handle {
 	HT_ENTRY(rdma_hndl, xio_key_int32) rdma_hndl_htbl;
 };
 
-struct xio_transport_msg_validators_cls {
-	int	(*is_valid_out_msg)(struct xio_msg *msg);
-	int	(*is_valid_in_req)(struct xio_msg *msg);
-};
-
 struct xio_tasks_pool_ops {
 	void	(*pool_get_params)(struct xio_transport_handle *transport_hndl,
 				   int *start_nr,
@@ -339,96 +333,6 @@ struct xio_tasks_pool_ops {
 				struct xio_task *task);
 	int	(*task_post_get)(struct xio_transport_handle *trans_hndl,
 				 struct xio_task *task);
-};
-
-struct xio_transport {
-	struct xio_transport_msg_validators_cls	validators_cls;
-
-	const char				*name;
-
-	/* transport ctor/dtor called right after registration */
-	void	(*ctor)(void);
-	void	(*dtor)(void);
-
-	/* transport initialization */
-	int	(*init)(struct xio_transport *self);
-	void	(*release)(struct xio_transport *self);
-
-	/* running thread (context) is going down */
-	int	(*context_shutdown)(struct xio_transport_handle *trans_hndl,
-				    struct xio_context *ctx);
-
-	/* task pools management */
-	void	(*get_pools_setup_ops)(
-				struct xio_transport_handle *trans_hndl,
-				struct xio_tasks_pool_ops **initial_pool_ops,
-				struct xio_tasks_pool_ops **primary_pool_ops);
-
-	void	(*set_pools_cls)(struct xio_transport_handle *trans_hndl,
-				 struct xio_tasks_pool_cls *initial_pool_cls,
-				 struct xio_tasks_pool_cls *primary_pool_cls);
-
-	/* connection */
-	struct xio_transport_handle *(*open)(
-				struct xio_transport *self,
-				struct xio_context *ctx,
-				struct xio_observer *observer,
-				uint32_t trans_attr_mask,
-				struct xio_transport_init_attr *attr);
-
-	int	(*connect)(struct xio_transport_handle *trans_hndl,
-			   const char *portal_uri,
-			   const char *out_if);
-
-	int	(*listen)(struct xio_transport_handle *trans_hndl,
-			  const char *portal_uri, uint16_t *src_port,
-			  int backlog);
-
-	int	(*accept)(struct xio_transport_handle *trans_hndl);
-
-	int	(*poll)(struct xio_transport_handle *trans_hndl,
-			long min_nr, long nr,
-			struct timespec *timeout);
-
-	int	(*reject)(struct xio_transport_handle *trans_hndl);
-
-	void	(*close)(struct xio_transport_handle *trans_hndl);
-
-	int	(*dup2)(struct xio_transport_handle *old_trans_hndl,
-			struct xio_transport_handle **new_trans_hndl);
-
-	int	(*update_task)(struct xio_transport_handle *trans_hndl,
-			       struct xio_task *task);
-
-	int	(*update_rkey)(struct xio_transport_handle *trans_hndl,
-			       uint32_t *rkey);
-
-	int	(*send)(struct xio_transport_handle *trans_hndl,
-			struct xio_task *task);
-
-	int	(*set_opt)(void *xio_obj,
-			   int optname, const void *optval, int optlen);
-
-	int	(*get_opt)(void *xio_obj,
-			   int optname, void *optval, int *optlen);
-
-	int	(*cancel_req)(struct xio_transport_handle *trans_hndl,
-			      struct xio_msg *req, uint64_t stag,
-			      void *ulp_msg, size_t ulp_msg_len);
-
-	int	(*cancel_rsp)(struct xio_transport_handle *trans_hndl,
-			      struct xio_task *task, enum xio_status result,
-			      void *ulp_msg, size_t ulp_msg_len);
-
-	int	(*modify)(struct xio_transport_handle *trans_hndl,
-			  struct xio_transport_attr *attr,
-			  int attr_mask);
-
-	int	(*query)(struct xio_transport_handle *trans_hndl,
-			 struct xio_transport_attr *attr,
-			 int attr_mask);
-
-	struct list_head transports_list_entry;
 };
 
 /*---------------------------------------------------------------------------*/
@@ -502,21 +406,6 @@ int xio_transport_assign_in_buf(struct xio_transport_handle *trans_hndl,
 				struct xio_task *task,
 				int *is_assigned);
 
-/*---------------------------------------------------------------------------*/
-/* xio_reg_transport			                                     */
-/*---------------------------------------------------------------------------*/
-int xio_reg_transport(struct xio_transport *transport);
-
-/*---------------------------------------------------------------------------*/
-/* xio_unreg_transport							     */
-/*---------------------------------------------------------------------------*/
-void xio_unreg_transport(struct xio_transport *transport);
-
-/*---------------------------------------------------------------------------*/
-/* xio_get_transport							     */
-/*---------------------------------------------------------------------------*/
-struct xio_transport *xio_get_transport(const char *name);
-
 int xio_rdma_cancel_req(struct xio_transport_handle *transport,
 			struct xio_msg *req, uint64_t stag,
 			void *ulp_msg, size_t ulp_msg_sz);
@@ -525,4 +414,62 @@ int xio_rdma_cancel_rsp(struct xio_transport_handle *transport,
 			struct xio_task *task, enum xio_status result,
 			void *ulp_msg, size_t ulp_msg_sz);
 
+/*---------------------------------------------------------------------------*/
+/* rdma transport functions							     */
+/*---------------------------------------------------------------------------*/
+void xio_rdma_transport_constructor(void);
+void xio_rdma_transport_destructor(void);
+int xio_rdma_transport_init();
+void xio_rdma_transport_release();
+int xio_rdma_context_shutdown(struct xio_transport_handle *trans_hndl,
+			struct xio_context *ctx);
+int xio_rdma_connect(struct xio_transport_handle *trans_hndl,
+			const char *portal_uri, const char *out_if_addr);
+int xio_rdma_listen(struct xio_transport_handle *transport_hndl,
+			const char *portal_uri,
+			uint16_t *src_port, int backlog);
+int xio_rdma_accept(struct xio_transport_handle *transport_hndl);
+int xio_rdma_reject(struct xio_transport_handle *transport);
+void xio_rdma_close(struct xio_transport_handle *transport);
+int xio_rdma_dup2(struct xio_transport_handle *old_trans_hndl,
+			struct xio_transport_handle **new_trans_hndl);
+int xio_rdma_update_task(struct xio_transport_handle *transport_hndl,
+			struct xio_task *task);
+int xio_rdma_update_rkey(struct xio_transport_handle *transport_hndl,
+			uint32_t *rkey);
+int xio_rdma_send(struct xio_transport_handle *transport,
+			struct xio_task *task);
+int xio_rdma_set_opt(void *xio_obj,
+			int optname, const void *optval, int optlen);
+int xio_rdma_get_opt(void  *xio_obj,
+			int optname, void *optval, int *optlen);
+int xio_rdma_cancel_req(struct xio_transport_handle *transport,
+			struct xio_msg *req, uint64_t stag,
+			void *ulp_msg, size_t ulp_msg_sz);
+int xio_rdma_cancel_rsp(struct xio_transport_handle *transport,
+			struct xio_task *task, enum xio_status result,
+			void *ulp_msg, size_t ulp_msg_sz);
+void xio_rdma_set_pools_cls(
+			struct xio_transport_handle *transport_hndl,
+			struct xio_tasks_pool_cls *initial_pool_cls,
+			struct xio_tasks_pool_cls *primary_pool_cls);
+int xio_rdma_transport_modify(struct xio_transport_handle *transport_hndl,
+			struct xio_transport_attr *attr,
+			int attr_mask);
+int xio_rdma_transport_query(struct xio_transport_handle *transport_hndl,
+			struct xio_transport_attr *attr,
+			int attr_mask);
+int xio_rdma_is_valid_in_req(struct xio_msg *msg);
+int xio_rdma_is_valid_out_msg(struct xio_msg *msg);
+
+struct xio_transport_handle *xio_rdma_open(
+	struct xio_context	*ctx,
+	struct xio_observer	*observer,
+	uint32_t		trans_attr_mask,
+	struct xio_transport_init_attr *attr);
+
+void xio_rdma_get_pools_ops(
+	struct xio_transport_handle *trans_hndl,
+	struct xio_tasks_pool_ops **initial_pool_ops,
+	struct xio_tasks_pool_ops **primary_pool_ops);
 #endif /*XIO_TRANSPORT_H */

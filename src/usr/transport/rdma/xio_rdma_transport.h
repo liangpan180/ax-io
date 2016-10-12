@@ -371,20 +371,6 @@ int xio_post_recv(struct xio_transport_handle *rdma_hndl,
 		  struct xio_task *task, int num_recv_bufs);
 int xio_rdma_rearm_rq(struct xio_transport_handle *rdma_hndl);
 
-int xio_rdma_send(struct xio_transport_handle *transport,
-		  struct xio_task *task);
-int xio_rdma_poll(struct xio_transport_handle *transport,
-		  long min_nr, long nr,
-		  struct timespec *ts_timeout);
-
-int xio_rdma_cancel_req(struct xio_transport_handle *transport,
-			struct xio_msg *req, uint64_t stag,
-			void *ulp_msg, size_t ulp_msg_sz);
-
-int xio_rdma_cancel_rsp(struct xio_transport_handle *transport,
-			struct xio_task *task, enum xio_status result,
-			void *ulp_msg, size_t ulp_msg_sz);
-
 /* xio_rdma_management.c */
 int xio_rdma_get_max_header_size(void);
 

@@ -403,7 +403,6 @@ enum xio_session_type {
  */
 enum xio_proto {
 	XIO_PROTO_RDMA,		/**< Infiniband's RDMA protocol		     */
-	XIO_PROTO_TCP		/**< TCP protocol - userspace only	     */
 };
 
 /**
@@ -1137,7 +1136,6 @@ enum xio_log_level {
 enum xio_optlevel {
 	XIO_OPTLEVEL_ACCELIO, /**< General library option level             */
 	XIO_OPTLEVEL_RDMA,    /**< RDMA transport level			    */
-	XIO_OPTLEVEL_TCP,     /**< TCP transport level			    */
 };
 
 /**

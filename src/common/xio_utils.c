@@ -39,7 +39,6 @@
 #include "libxio.h"
 #include "xio_log.h"
 #include "xio_common.h"
-#include "xio_protocol.h"
 
 /*---------------------------------------------------------------------------*/
 /* xio_uri_get_proto							     */
@@ -455,17 +454,3 @@ inline const char *xio_version(void)
 	return XIO_VERSION_STRING;
 }
 EXPORT_SYMBOL(xio_version);
-
-/*---------------------------------------------------------------------------*/
-/* xio_proto_str							     */
-/*---------------------------------------------------------------------------*/
-const char *xio_proto_str(enum xio_proto proto)
-{
-	switch (proto) {
-	case XIO_PROTO_RDMA: return "rdma";
-	case XIO_PROTO_TCP: return "tcp";
-	default: return "proto_unknown";
-	}
-}
-EXPORT_SYMBOL(xio_proto_str);
-

@@ -955,9 +955,6 @@ struct xio_connection *xio_connect(struct xio_connection_params *cparams)
 
 		connection  = session->lead_connection;
 
-		/* get transport class routines */
-		session->validators_cls = xio_nexus_get_validators_cls(nexus);
-
 		session->state = XIO_SESSION_STATE_CONNECT;
 
 		retval = xio_nexus_connect(nexus, portal,

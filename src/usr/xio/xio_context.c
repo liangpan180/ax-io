@@ -93,7 +93,6 @@ struct xio_context *xio_context_create(struct xio_context_params *ctx_params,
 				       int polling_timeout_us, int cpu_hint)
 {
 	struct xio_context		*ctx = NULL;
-	struct xio_transport		*transport;
 	int				cpu;
 
 	/* check if user called xio_init() */
@@ -171,16 +170,14 @@ struct xio_context *xio_context_create(struct xio_context_params *ctx_params,
 		goto cleanup2;
 
 	/* initialize rdma pools only */
-	transport = xio_get_transport("rdma");
-	if (transport && ctx->prealloc_xio_inline_bufs) {
-		int retval = xio_ctx_pool_create(ctx, XIO_PROTO_RDMA,
-					         XIO_CONTEXT_POOL_CLASS_INITIAL);
+	xio_rdma_transport_init();
+	if (ctx->prealloc_xio_inline_bufs) {
+		int retval = xio_ctx_pool_create(ctx, XIO_CONTEXT_POOL_CLASS_INITIAL);
 		if (retval) {
 			ERROR_LOG("Failed to create initial pool. ctx:%p\n", ctx);
 			goto cleanup2;
 		}
-		retval = xio_ctx_pool_create(ctx, XIO_PROTO_RDMA,
-					     XIO_CONTEXT_POOL_CLASS_PRIMARY);
+		retval = xio_ctx_pool_create(ctx, XIO_CONTEXT_POOL_CLASS_PRIMARY);
 		if (retval) {
 			ERROR_LOG("Failed to create primary pool. ctx:%p\n", ctx);
 			goto cleanup2;
@@ -219,19 +216,15 @@ static inline void xio_context_reset_stop(struct xio_context *ctx)
 /*---------------------------------------------------------------------------*/
 static void xio_ctx_task_pools_destroy(struct xio_context *ctx)
 {
-	int i;
-
-	for (i = 0; i < XIO_PROTO_LAST; i++) {
-		if (ctx->initial_tasks_pool[i]) {
-			xio_tasks_pool_free_tasks(ctx->initial_tasks_pool[i]);
-			xio_tasks_pool_destroy(ctx->initial_tasks_pool[i]);
-			ctx->initial_tasks_pool[i] = NULL;
-		}
-		if (ctx->primary_tasks_pool[i]) {
-			xio_tasks_pool_free_tasks(ctx->primary_tasks_pool[i]);
-			xio_tasks_pool_destroy(ctx->primary_tasks_pool[i]);
-			ctx->primary_tasks_pool[i] = NULL;
-		}
+	if (ctx->initial_tasks_pool) {
+		xio_tasks_pool_free_tasks(ctx->initial_tasks_pool);
+		xio_tasks_pool_destroy(ctx->initial_tasks_pool);
+		ctx->initial_tasks_pool = NULL;
+	}
+	if (ctx->primary_tasks_pool) {
+		xio_tasks_pool_free_tasks(ctx->primary_tasks_pool);
+		xio_tasks_pool_destroy(ctx->primary_tasks_pool);
+		ctx->primary_tasks_pool = NULL;
 	}
 }
 
@@ -685,51 +678,32 @@ EXPORT_SYMBOL(xio_context_set_poll_completions_fn);
 /*---------------------------------------------------------------------------*/
 /* xio_ctx_pool_create							     */
 /*---------------------------------------------------------------------------*/
-int xio_ctx_pool_create(struct xio_context *ctx, enum xio_proto proto,
+int xio_ctx_pool_create(struct xio_context *ctx,
 		        enum xio_context_pool_class pool_cls)
 {
 	struct xio_tasks_pool_ops	*pool_ops;
 	struct xio_tasks_pool		**tasks_pool;
-	struct xio_transport		*transport;
 	struct xio_tasks_pool_params	params;
 	char				pool_name[64];
-	const char			*proto_str = xio_proto_str(proto);
 
-	/* get the transport's proto */
-	transport = xio_get_transport(proto_str);
-	if (!transport) {
-		ERROR_LOG("failed to load %s transport layer.\n", proto_str);
-		ERROR_LOG("validate that your system support %s " \
-			  "and the accelio's %s module is loaded\n",
-			  proto_str, proto_str);
-		xio_set_error(ENOPROTOOPT);
-		return -1;
-	}
+	xio_rdma_transport_init();
 
-	if (transport->get_pools_setup_ops) {
-		if (!ctx->primary_pool_ops[proto] ||
-		    !ctx->initial_pool_ops[proto])
-			transport->get_pools_setup_ops(
-					NULL,
-					&ctx->initial_pool_ops[proto],
-					&ctx->primary_pool_ops[proto]);
-	} else {
-		ERROR_LOG("transport does not implement " \
-			  "\"get_pools_setup_ops\"\n");
-		return -1;
-	}
+	if (!ctx->primary_pool_ops || !ctx->initial_pool_ops)
+		xio_rdma_get_pools_ops(NULL,
+			&ctx->initial_pool_ops,
+			&ctx->primary_pool_ops);
 
 	switch (pool_cls) {
 	case XIO_CONTEXT_POOL_CLASS_INITIAL:
-		tasks_pool = &ctx->initial_tasks_pool[proto];
-		pool_ops = ctx->initial_pool_ops[proto];
-		sprintf(pool_name, "ctx:%p - initial_pool_%s", ctx, proto_str);
+		tasks_pool = &ctx->initial_tasks_pool;
+		pool_ops = ctx->initial_pool_ops;
+		sprintf(pool_name, "ctx:%p - initial_pool_rdma", ctx);
 
 	break;
 	case XIO_CONTEXT_POOL_CLASS_PRIMARY:
-		tasks_pool = &ctx->primary_tasks_pool[proto];
-		pool_ops = ctx->primary_pool_ops[proto];
-		sprintf(pool_name, "ctx:%p - primary_pool_%s", ctx, proto_str);
+		tasks_pool = &ctx->primary_tasks_pool;
+		pool_ops = ctx->primary_pool_ops;
+		sprintf(pool_name, "ctx:%p - primary_pool_rdma", ctx);
 	break;
 	default:
 		xio_set_error(EINVAL);
@@ -804,7 +778,6 @@ int xio_ctx_pool_create(struct xio_context *ctx, enum xio_proto proto,
 
 	return 0;
 }
-
 
 #ifdef XIO_THREAD_SAFE_DEBUG
 

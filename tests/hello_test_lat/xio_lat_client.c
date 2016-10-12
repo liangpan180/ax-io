@@ -511,7 +511,7 @@ int main(int argc, char *argv[])
 	/* disable nagle algorithm for tcp */
 	opt = 1;
 	xio_set_opt(NULL,
-		    XIO_OPTLEVEL_TCP, XIO_OPTNAME_TCP_NO_DELAY,
+		    XIO_OPTLEVEL_RDMA, XIO_OPTNAME_TCP_NO_DELAY,
 		    &opt, sizeof(int));
 
 	ctx = xio_context_create(NULL, POLLING_TIMEOUT, test_config.cpu);

@@ -74,11 +74,7 @@ static int xio_register_transport(void)
 
 	/* this may the first call in application so initialize the rdma */
 	if (!init_transport) {
-		struct xio_transport *transport = xio_get_transport("rdma");
-
-		if (!transport)
-			return 0;
-
+		xio_rdma_transport_init();
 		init_transport = 1;
 	}
 
@@ -287,13 +283,7 @@ static struct xio_mr *xio_reg_mr_ex(void **addr, size_t length, uint64_t access)
 	}
 	/* this may the first call in application so initialize the rdma */
 	if (init_transport) {
-		struct xio_transport *transport = xio_get_transport("rdma");
-
-		if (!transport) {
-			ERROR_LOG("invalid protocol. proto: rdma\n");
-			xio_set_error(XIO_E_ADDR_ERROR);
-			return NULL;
-		}
+		xio_rdma_transport_init();
 		init_transport = 0;
 	}
 

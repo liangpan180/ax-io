@@ -1702,19 +1702,6 @@ int xio_release_msg(struct xio_msg *msg)
 EXPORT_SYMBOL(xio_release_msg);
 
 /*---------------------------------------------------------------------------*/
-/* xio_poll_completions							     */
-/*---------------------------------------------------------------------------*/
-int xio_poll_completions(struct xio_connection *connection,
-			 long min_nr, long nr,
-			 struct timespec *timeout)
-{
-	if (connection->nexus)
-		return xio_nexus_poll(connection->nexus, min_nr, nr, timeout);
-	else
-		return 0;
-}
-
-/*---------------------------------------------------------------------------*/
 /* xio_fin_req_timeout							     */
 /*---------------------------------------------------------------------------*/
 static void xio_fin_req_timeout(void *data)
