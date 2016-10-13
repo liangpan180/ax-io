@@ -145,10 +145,6 @@ struct xio_connection {
 	xio_work_handle_t		teardown_work;
 	xio_delayed_work_handle_t	connect_work;
 
-#ifdef XIO_SESSION_DEBUG
-	uint64_t			peer_connection;
-	uint64_t			peer_session;
-#endif
 };
 
 struct xio_connection *xio_connection_create(

@@ -77,7 +77,6 @@ struct xio_mempool_config g_mempool_config = {
 	}
 };
 
-/* #define DEBUG_MEMPOOL_MT */
 
 /*---------------------------------------------------------------------------*/
 /* structures								     */
@@ -271,15 +270,6 @@ static int xio_mem_slab_free(struct xio_mem_slab *slab)
 	struct xio_mem_region *r, *tmp_r;
 
 	slab->free_blocks_list = NULL;
-
-#ifdef DEBUG_MEMPOOL_MT
-	if (slab->used_mb_nr)
-		ERROR_LOG("buffers are still in use before free: " \
-			  "pool:%p - slab[%p]: " \
-			  "size:%zd, used:%d, alloced:%d, max_alloc:%d\n",
-			  slab->pool, slab, slab->mb_size, slab->used_mb_nr,
-			  slab->curr_mb_nr, slab->max_mb_nr);
-#endif
 
 	if (slab->curr_mb_nr) {
 		list_for_each_entry_safe(r, tmp_r, &slab->mem_regions_list,
@@ -642,21 +632,10 @@ retry:
 	reg_mem->priv	= block;
 	reg_mem->length	= length;
 
-#ifdef DEBUG_MEMPOOL_MT
-	__sync_fetch_and_add(&slab->used_mb_nr, 1);
-	if (__sync_fetch_and_add(&block->refcnt, 1) != 0) {
-		ERROR_LOG("pool alloc failed\n");
-		abort(); /* core dump - double free */
-	}
-#else
 	slab->used_mb_nr++;
-#endif
 
 cleanup:
 
-#ifdef DEBUG_MEMPOOL_MT
-	xio_mempool_dump(p);
-#endif
 	return ret;
 }
 
@@ -672,15 +651,7 @@ void xio_mempool_free(struct xio_reg_mem *reg_mem)
 
 	block = (struct xio_mem_block *)reg_mem->priv;
 
-#ifdef DEBUG_MEMPOOL_MT
-	if (__sync_fetch_and_sub(&block->refcnt, 1) != 1) {
-		ERROR_LOG("pool: release failed");
-		abort(); /* core dump - double free */
-	}
-	__sync_fetch_and_sub(&block->parent_slab->used_mb_nr, 1);
-#else
 	block->parent_slab->used_mb_nr--;
-#endif
 
 	if (block->parent_slab->pool->safe_mt)
 		safe_release(block->parent_slab, block);
