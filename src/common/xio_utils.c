@@ -116,25 +116,6 @@ int xio_uri_get_portal(const char *uri, char *portal, int portal_len)
 }
 
 /*---------------------------------------------------------------------------*/
-/* xio_uri_get_resource							     */
-/*---------------------------------------------------------------------------*/
-int xio_uri_get_resource(const char *uri, char *resource, int resource_len)
-{
-	const char *res = xio_uri_get_resource_ptr(uri);
-
-	if (res) {
-		int  len = strlen(res);
-
-		if (len < resource_len) {
-			strcpy(resource, res);
-			return 0;
-		}
-	}
-
-	return -1;
-}
-
-/*---------------------------------------------------------------------------*/
 /* xio_write_tlv							     */
 /*---------------------------------------------------------------------------*/
 size_t xio_write_tlv(uint32_t type, uint64_t len, uint8_t *buffer)

@@ -40,10 +40,6 @@
 
 #include "xio_transport.h"
 
-#define MAX_SGE				(XIO_IOVLEN + 1)
-
-#define MAX_HDR_SZ			512
-
 #define NUM_CONN_SETUP_TASKS		2 /* one posted for req rx,
 					   * one for reply tx
 					   */
@@ -54,15 +50,12 @@
 					      */
 #define NUM_ALLOC_PRIMARY_POOL_TASKS	512
 
-#define USECS_IN_SEC			1000000
-#define NSECS_IN_USEC			1000
-
-#define VALIDATE_SZ(sz)	do {			\
-		if (optlen != (sz)) {		\
-			xio_set_error(EINVAL);	\
-			return -1;		\
-		}				\
-	} while (0)
+#define VALIDATE_SZ(sz)        do {                    \
+               if (optlen != (sz)) {           \
+                       xio_set_error(EINVAL);  \
+                       return -1;              \
+               }                               \
+       } while (0)
 
 #define xio_prefetch(p)            __builtin_prefetch(p)
 
@@ -78,44 +71,6 @@ struct xio_mr {
 	struct list_head		dm_list;
 	struct list_head		mr_list_entry;
 };
-
-/*
- * The next routines deal with comparing 16 bit unsigned ints
- * and worry about wraparound (automatic with unsigned arithmetic).
- */
-
-static inline int16_t before(uint16_t seq1, uint16_t seq2)
-{
-	return (int16_t)(seq1 - seq2) < 0;
-}
-
-#define after(seq2, seq1)       before(seq1, seq2)
-
-static inline int16_t before_eq(uint16_t seq1, uint16_t seq2)
-{
-	return (int16_t)(seq1 - seq2) <= 0;
-}
-
-#define after_eq(seq2, seq1)       before_eq(seq1, seq2)
-
-/* is s2<=s1<s3 ? */
-static inline int16_t between(uint16_t seq1, uint16_t seq2, uint16_t seq3)
-{
-	if (before_eq(seq1, seq2) && before(seq2, seq3))
-		return 1;
-	return 0;
-}
-
-static inline
-unsigned long long timespec_to_usecs(struct timespec *time_spec)
-{
-	unsigned long long retval = 0;
-
-	retval  = time_spec->tv_sec * USECS_IN_SEC;
-	retval += time_spec->tv_nsec / NSECS_IN_USEC;
-
-	return retval;
-}
 
 struct xio_mempool *xio_transport_mempool_get(
 		struct xio_context *ctx,
