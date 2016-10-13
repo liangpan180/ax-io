@@ -306,7 +306,6 @@ struct xio_transport_handle {
 	struct xio_task			beacon_task;
 	uint32_t			trans_attr_mask;
 	struct xio_transport_attr	trans_attr;
-	struct xio_srq			*xio_srq;
 	HT_ENTRY(rdma_hndl, xio_key_int32) rdma_hndl_htbl;
 };
 

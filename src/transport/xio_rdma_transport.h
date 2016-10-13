@@ -295,16 +295,6 @@ struct xio_cq  {
 	struct list_head		cq_list_entry; /* list of all
 						       cq per device */
 	struct xio_observer		observer;
-	struct xio_srq			*srq;
-};
-
-struct xio_srq {
-	HT_HEAD(, rdma_hndl, HASHTABLE_PRIME_SMALL)  ht_rdma_hndl;
-	struct ibv_srq 			*srq;
-	struct list_head		rx_list;
-	int				rqe_avail;  /* recv queue elements
-						       avail */
-	int				pad;
 };
 
 struct xio_device {

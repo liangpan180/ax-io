@@ -311,68 +311,6 @@ static int xio_cq_modify(struct xio_cq *tcq, int cq_count, int cq_pariod)
 }
 #endif
 
-#ifdef XIO_SRQ_ENABLE
-/*---------------------------------------------------------------------------*/
-/* xio_srq_get                                                               */
-/*---------------------------------------------------------------------------*/
-static struct xio_srq *xio_srq_get(struct xio_transport_handle *transport_hndl,
-		struct xio_cq *tcq)
-{
-	struct xio_srq *srq;
-	struct ibv_srq_init_attr srq_init_attr;
-
-	if (tcq->srq)
-		return tcq->srq;
-	srq = (struct xio_srq *)ucalloc(1, sizeof(struct xio_srq));
-	if (!srq) {
-		xio_set_error(ENOMEM);
-		ERROR_LOG("ucalloc failed. %m\n");
-		return NULL;
-	}
-
-	memset(&srq_init_attr, 0, sizeof(srq_init_attr));
-
-	srq_init_attr.attr.max_wr = SRQ_DEPTH;
-	srq_init_attr.attr.max_sge = 1;
-
-	srq->srq = ibv_create_srq(transport_hndl->dev->pd, &srq_init_attr);
-	if (!srq->srq) {
-		xio_set_error(errno);
-		ERROR_LOG("creation of shared receive queue failed " \
-				"(errno=%d %m)\n", errno);
-		goto cleanup;
-	}
-
-	HT_INIT(&srq->ht_transport_hndl, xio_int32_hash, xio_int32_cmp,
-			xio_int32_cp);
-	INIT_LIST_HEAD(&srq->rx_list);
-
-	tcq->srq = srq;
-	return srq;
-
-cleanup:
-	free(srq);
-	return NULL;
-}
-
-/*---------------------------------------------------------------------------*/
-/* xio_srq_destroy                                                           */
-/*---------------------------------------------------------------------------*/
-static int xio_srq_destroy(struct xio_srq *srq)
-{
-	if (!list_empty(&srq->rx_list)) {
-		TRACE_LOG("rx_list not empty!\n");
-		xio_transport_flush_task_list(&srq->rx_list);
-	}
-	if (ibv_destroy_srq(srq->srq)) {
-		ERROR_LOG("ibv_destroy_srq failed\n");
-		return -1;
-	}
-	free(srq);
-	return 0;
-}
-#endif
-
 /*---------------------------------------------------------------------------*/
 /* xio_cq_down								     */
 /*---------------------------------------------------------------------------*/
@@ -392,10 +330,6 @@ static void xio_cq_down(struct kref *kref)
 	xio_context_disable_event(&tcq->poll_cq_event);
 
 	xio_context_unreg_observer(tcq->ctx, &tcq->observer);
-
-#ifdef XIO_SRQ_ENABLE
-	xio_srq_destroy(tcq->srq);
-#endif
 
 	if (tcq->cq_events_that_need_ack != 0) {
 		ibv_ack_cq_events(tcq->cq,
@@ -950,46 +884,12 @@ static int xio_cq_free_slots(struct xio_cq *tcq, int cqe_num)
 	return 0;
 }
 
-#ifdef XIO_SRQ_ENABLE
-/*---------------------------------------------------------------------------*/
-/* xio_srq_qp_added                                                          */
-/*---------------------------------------------------------------------------*/
-static void xio_srq_qp_added(struct xio_transport_handle *transport_hndl,
-		struct xio_srq *srq)
-{
-	HT_INSERT(&srq->ht_transport_hndl, &transport_hndl->qp->qp_num, transport_hndl,
-			transport_hndl_htbl);
-	DEBUG_LOG("adding rdma hndl %p with id %d\n", transport_hndl,
-			transport_hndl->qp->qp_num);
-}
-
-/*---------------------------------------------------------------------------*/
-/* xio_srq_qp_deleted                                                        */
-/*---------------------------------------------------------------------------*/
-static void xio_srq_qp_deleted(struct xio_transport_handle *transport_hndl,
-		struct xio_srq *srq)
-{
-	struct xio_key_int32  key;
-	struct xio_transport_handle *c;
-
-	key.id = transport_hndl->qp->qp_num;
-
-	HT_LOOKUP(&srq->ht_transport_hndl, &key, c, transport_hndl_htbl);
-	HT_REMOVE(&srq->ht_transport_hndl, c, transport_hndl, transport_hndl_htbl);
-	DEBUG_LOG("removing rdma hndl %p with id %d\n", transport_hndl,
-			transport_hndl->qp->qp_num);
-}
-#endif
-
 /*---------------------------------------------------------------------------*/
 /* xio_qp_create							     */
 /*---------------------------------------------------------------------------*/
 static int xio_qp_create(struct xio_transport_handle *transport_hndl)
 {
 	struct	xio_cq			*tcq;
-#ifdef XIO_SRQ_ENABLE
-	struct xio_srq			*srq;
-#endif
 	struct xio_device		*dev = transport_hndl->dev;
 	struct ibv_qp_init_attr		qp_init_attr;
 	struct ibv_qp_attr		qp_attr;
@@ -1013,18 +913,8 @@ static int xio_qp_create(struct xio_transport_handle *transport_hndl)
 	qp_init_attr.send_cq		  = tcq->cq;
 	qp_init_attr.recv_cq		  = tcq->cq;
 
-#ifdef XIO_SRQ_ENABLE
-	srq = xio_srq_get(transport_hndl, tcq);
-	if (!srq) {
-		ERROR_LOG("srq initialization failed\n");
-		goto release_cq;
-	}
-	qp_init_attr.srq		  = srq->srq;
-#else
 	qp_init_attr.cap.max_recv_wr	  = MAX_RECV_WR + EXTRA_RQE;
 	qp_init_attr.cap.max_recv_sge	  = 1;
-
-#endif
 
 	qp_init_attr.cap.max_send_wr	  = MAX_SEND_WR;
 	qp_init_attr.cap.max_send_sge	  = min(rdma_options.max_out_iovsz + 1,
@@ -1046,9 +936,6 @@ static int xio_qp_create(struct xio_transport_handle *transport_hndl)
 	transport_hndl->qp		= transport_hndl->cm_id->qp;
 	transport_hndl->sqe_avail	= MAX_SEND_WR;
 
-#ifdef XIO_SRQ_ENABLE
-	xio_srq_qp_added(transport_hndl, srq);
-#endif
 	transport_hndl->beacon_task.dd_data = ptr_from_int64(XIO_BEACON_WRID);
 	transport_hndl->beacon_task.context = (void *)transport_hndl;
 	transport_hndl->beacon.wr_id	 = uint64_from_ptr(&transport_hndl->beacon_task);
@@ -1088,9 +975,6 @@ static void xio_qp_release(struct xio_transport_handle *transport_hndl)
 	if (transport_hndl->qp) {
 		TRACE_LOG("rdma qp: [close] handle:%p, qp:%p\n", transport_hndl,
 			  transport_hndl->qp);
-#ifdef XIO_SRQ_ENABLE
-		xio_srq_qp_deleted(transport_hndl, transport_hndl->tcq->srq);
-#endif
 		xio_cq_free_slots(transport_hndl->tcq, MAX_CQE_PER_QP);
 		list_del(&transport_hndl->trans_list_entry);
 		rdma_destroy_qp(transport_hndl->cm_id);
@@ -2040,11 +1924,7 @@ static void on_cm_route_resolved(struct rdma_cm_event *ev,
 	}
 
 	memset(&cm_params, 0, sizeof(cm_params));
-#ifdef XIO_SRQ_ENABLE
-	cm_params.rnr_retry_count = 7; /* 7 - infinite retry */
-#else
 	cm_params.rnr_retry_count = 3;
-#endif
 	cm_params.retry_count     = 3;
 
 	/*

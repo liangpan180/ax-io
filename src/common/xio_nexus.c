@@ -404,10 +404,7 @@ static int xio_nexus_send_setup_req(struct xio_nexus *nexus)
 		trans_hndl = nexus->transport_hndl;
 	}
 
-	if (nexus->srq_enabled)
-		pool = nexus->primary_tasks_pool;
-	else
-		pool = nexus->initial_tasks_pool;
+	pool = nexus->initial_tasks_pool;
 	task =  xio_tasks_pool_get(pool, trans_hndl);
 	if (!task) {
 		ERROR_LOG("%s task pool is empty\n", pool->params.pool_name);
@@ -582,15 +579,11 @@ static int xio_nexus_on_recv_setup_req(struct xio_nexus *new_nexus,
 	}
 
 	cid = nexus->cid;
-	/* time to prepare the primary pool if srq is disabled. In case
-	 * srq was enabled, it was created in order to send the nexus setup */
-	if (!nexus->srq_enabled) {
-		retval = xio_nexus_primary_pool_create(nexus);
-		if (retval != 0) {
-			ERROR_LOG("create primary pool failed\n");
-			status = ENOMEM;
-			goto send_response;
-		}
+	retval = xio_nexus_primary_pool_create(nexus);
+	if (retval != 0) {
+		ERROR_LOG("create primary pool failed\n");
+		status = ENOMEM;
+		goto send_response;
 	}
 
 send_response:
@@ -735,13 +728,11 @@ static int xio_nexus_on_recv_setup_rsp(struct xio_nexus *nexus,
 	xio_tasks_pool_put(task);
 
 	if (nexus->state != XIO_NEXUS_STATE_RECONNECT) {
-		if (!nexus->srq_enabled) {
 			/* create the primary */
-			retval = xio_nexus_primary_pool_create(nexus);
-			if (retval != 0) {
-				ERROR_LOG("create primary pool failed\n");
-				return -1;
-			}
+		retval = xio_nexus_primary_pool_create(nexus);
+		if (retval != 0) {
+			ERROR_LOG("create primary pool failed\n");
+			return -1;
 		}
 		nexus->state = XIO_NEXUS_STATE_CONNECTED;
 
@@ -1183,7 +1174,6 @@ struct xio_nexus *xio_nexus_create(struct xio_nexus *parent_nexus,
 	/* add the nexus to temporary list */
 	nexus->transport_hndl		= transport_hndl;
 	nexus->server			= parent_nexus->server;
-	nexus->srq_enabled		= parent_nexus->srq_enabled;
 	kref_init(&nexus->kref);
 	nexus->state			= XIO_NEXUS_STATE_OPEN;
 	nexus->is_first_req		= 1;
@@ -1208,10 +1198,7 @@ struct xio_nexus *xio_nexus_create(struct xio_nexus *parent_nexus,
 				nexus->transport_hndl,
 				&ctx->initial_pool_ops,
 				&ctx->primary_pool_ops);
-	if (nexus->srq_enabled)
-		retval = xio_nexus_primary_pool_create(nexus);
-	else
-		retval = xio_nexus_initial_pool_create(nexus);
+	retval = xio_nexus_initial_pool_create(nexus);
 
 	if (retval != 0) {
 		ERROR_LOG("failed to setup pool\n");
@@ -1326,10 +1313,7 @@ static void xio_nexus_on_transport_established(struct xio_nexus *nexus,
 	if (!nexus->transport_hndl->is_client)
 		return;
 
-	if (nexus->srq_enabled)
-		retval = xio_nexus_primary_pool_create(nexus);
-	else
-		retval = xio_nexus_initial_pool_create(nexus);
+	retval = xio_nexus_initial_pool_create(nexus);
 
 	if (retval)
 		ERROR_LOG("creation of task pool failed\n");
@@ -1865,15 +1849,6 @@ struct xio_nexus *xio_nexus_open(struct xio_context *ctx,
 	}
 	kref_init(&nexus->kref);
 	nexus->state = XIO_NEXUS_STATE_OPEN;
-
-#ifdef XIO_SRQ_ENABLE
-	if (nexus->transport_hndl->proto == XIO_PROTO_RDMA)
-		nexus->srq_enabled = 1;
-	else
-		nexus->srq_enabled = 0;
-#else
-	nexus->srq_enabled = 0;
-#endif
 
 	nexus_ctx  = nexus->transport_hndl->ctx;
 
