@@ -42,7 +42,7 @@
 #include "xio_protocol.h"
 #include "xio_sg_table.h"
 #include "xio_observer.h"
-#include "xio_common_transport.h"
+#include "xio_mempool.h"
 
 static int xio_get_addr(char *dst, char *port, struct sockaddr *addr)
 {

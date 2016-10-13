@@ -46,7 +46,6 @@
 #include "xio_protocol.h"
 #include "get_clock.h"
 #include "xio_mem.h"
-#include "xio_common_transport.h"
 #include "xio_mempool.h"
 #include "xio_protocol.h"
 #include "xio_mbuf.h"

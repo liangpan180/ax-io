@@ -45,7 +45,6 @@
 #include "xio_observer.h"
 #include "xio_mbuf.h"
 #include "xio_task.h"
-#include "xio_common_transport.h"
 #include "xio_transport.h"
 #include "xio_protocol.h"
 #include "get_clock.h"

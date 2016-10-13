@@ -45,11 +45,24 @@
 #include "xio_workqueue_priv.h"
 #include <sys/hashtable.h>
 
-/*---------------------------------------------------------------------------*/
-/* forward declarations	                                                     */
-/*---------------------------------------------------------------------------*/
-struct xio_observer;
-struct xio_observable;
+#define NUM_CONN_SETUP_TASKS		2 /* one posted for req rx,
+					   * one for reply tx
+					   */
+#define CONN_SETUP_BUF_SIZE		4096
+
+#define NUM_START_PRIMARY_POOL_TASKS	312  /* must be enough to send few +
+					      *	fully post_recv buffers
+					      */
+#define NUM_ALLOC_PRIMARY_POOL_TASKS	512
+
+#define VALIDATE_SZ(sz)        do {                    \
+               if (optlen != (sz)) {           \
+                       xio_set_error(EINVAL);  \
+                       return -1;              \
+               }                               \
+       } while (0)
+
+#define xio_prefetch(p)            __builtin_prefetch(p)
 
 /*---------------------------------------------------------------------------*/
 /* enums								     */
@@ -334,6 +347,12 @@ struct xio_tasks_pool_ops {
 	int	(*task_post_get)(struct xio_transport_handle *trans_hndl,
 				 struct xio_task *task);
 };
+
+char *xio_transport_state_str(enum xio_transport_state state);
+
+struct xio_mempool *xio_transport_mempool_get(
+		struct xio_context *ctx,
+		int reg_mr);
 
 /*---------------------------------------------------------------------------*/
 /* xio_transport_reg_observer	                                             */

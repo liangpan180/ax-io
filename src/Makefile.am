@@ -90,7 +90,6 @@ libxio_headers = 	./xio/get_clock.h 			\
 			./common/xio_sg_table.h		\
 			./common/xio_objpool.h			\
 			./common/xio_transport.h		\
-			./common/xio_common_transport.h	\
 			./common/sys/hashtable.h		\
 			./linux/atomic.h 			\
 			./linux/kernel.h			\
@@ -136,7 +135,6 @@ libxio_la_SOURCES =	$(libxio_headers)		\
 			./common/xio_nexus_cache.c	\
 			./common/xio_idr.c		\
 			./common/xio_transport.c	\
-			./common/xio_common_transport.c	\
 			./common/xio_connection.c
 
 #libxio_la_LDFLAGS = -shared -rdynamic	 		\
