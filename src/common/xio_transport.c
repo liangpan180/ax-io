@@ -39,69 +39,12 @@
 #include <xio_os.h>
 #include "xio_log.h"
 #include "xio_common.h"
-#include "xio_protocol.h"
 #include "xio_mbuf.h"
 #include "xio_task.h"
 #include "xio_observer.h"
 #include "xio_transport.h"
-
-/*---------------------------------------------------------------------------*/
-/* globals								     */
-/*---------------------------------------------------------------------------*/
-static LIST_HEAD(transports_list);
-
-/*---------------------------------------------------------------------------*/
-/* xio_reg_transport							     */
-/*---------------------------------------------------------------------------*/
-int xio_reg_transport(struct xio_transport *transport)
-{
-	if (transport)
-		list_add(&transport->transports_list_entry, &transports_list);
-
-	return 0;
-}
-EXPORT_SYMBOL(xio_reg_transport);
-
-/*---------------------------------------------------------------------------*/
-/* xio_unreg_transport							     */
-/*---------------------------------------------------------------------------*/
-void xio_unreg_transport(struct xio_transport *transport)
-{
-	list_del(&transport->transports_list_entry);
-}
-EXPORT_SYMBOL(xio_unreg_transport);
-
-/*---------------------------------------------------------------------------*/
-/* xio_get_transport							     */
-/*---------------------------------------------------------------------------*/
-struct xio_transport *xio_get_transport(const char *name)
-{
-	struct xio_transport	*transport;
-	int			found = 0;
-
-	list_for_each_entry(transport, &transports_list,
-			    transports_list_entry) {
-		if (!strcmp(name, transport->name)) {
-			found = 1;
-			break;
-		}
-	}
-	if (!found)
-		return NULL;
-
-	/* lazy initialization of transport */
-	if (transport->init) {
-		int retval = transport->init(transport);
-
-		if (retval != 0) {
-			ERROR_LOG("%s transport initialization failed.\n",
-				  name);
-			return NULL;
-		}
-	}
-
-	return transport;
-}
+#include "xio_context.h"
+#include "xio_mempool.h"
 
 /*---------------------------------------------------------------------------*/
 /* xio_transport_flush_task_list					     */
@@ -146,3 +89,59 @@ int xio_transport_assign_in_buf(struct xio_transport_handle *trans_hndl,
 }
 EXPORT_SYMBOL(xio_transport_assign_in_buf);
 
+/*---------------------------------------------------------------------------*/
+/* xio_transport_mempool_get						     */
+/*---------------------------------------------------------------------------*/
+struct xio_mempool *xio_transport_mempool_get(
+		struct xio_context *ctx, int reg_mr)
+{
+	if (ctx->mempool)
+		return (struct xio_mempool *)ctx->mempool;
+
+        /* user asked to force registration and rdma exist on machine*/
+	xio_rdma_transport_init();
+        if (ctx->register_internal_mempool)
+                reg_mr = 1;
+
+	ctx->mempool = xio_mempool_create_prv(
+			ctx->nodeid,
+			(reg_mr ? XIO_MEMPOOL_FLAG_REG_MR : 0) |
+			XIO_MEMPOOL_FLAG_HUGE_PAGES_ALLOC);
+
+	if (!ctx->mempool) {
+		ERROR_LOG("xio_mempool_create failed (errno=%d %m)\n", errno);
+		return NULL;
+	}
+	return (struct xio_mempool *)ctx->mempool;
+}
+
+/*---------------------------------------------------------------------------*/
+/* xio_transport_state_str						     */
+/*---------------------------------------------------------------------------*/
+char *xio_transport_state_str(enum xio_transport_state state)
+{
+	switch (state) {
+	case XIO_TRANSPORT_STATE_INIT:
+		return "INIT";
+	case XIO_TRANSPORT_STATE_LISTEN:
+		return "LISTEN";
+	case XIO_TRANSPORT_STATE_CONNECTING:
+		return "CONNECTING";
+	case XIO_TRANSPORT_STATE_CONNECTED:
+		return "CONNECTED";
+	case XIO_TRANSPORT_STATE_DISCONNECTED:
+		return "DISCONNECTED";
+	case XIO_TRANSPORT_STATE_RECONNECT:
+		return "RECONNECT";
+	case XIO_TRANSPORT_STATE_CLOSED:
+		return "CLOSED";
+	case XIO_TRANSPORT_STATE_DESTROYED:
+		return "DESTROYED";
+	case XIO_TRANSPORT_STATE_ERROR:
+		return "ERROR";
+	default:
+		return "UNKNOWN";
+	}
+
+	return NULL;
+};

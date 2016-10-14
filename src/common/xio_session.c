@@ -245,10 +245,6 @@ void xio_session_write_header(struct xio_task *task,
 	PACK_SVAL(hdr, tmp_hdr, credits_msgs);
 	PACK_LVAL(hdr, tmp_hdr, receipt_result);
 	PACK_LLVAL(hdr, tmp_hdr, credits_bytes);
-#ifdef XIO_SESSION_DEBUG
-	PACK_LLVAL(hdr, tmp_hdr, connection);
-	PACK_LLVAL(hdr, tmp_hdr, session);
-#endif
 
 	xio_mbuf_inc(&task->mbuf, sizeof(struct xio_session_hdr));
 }
@@ -274,10 +270,6 @@ void xio_session_read_header(struct xio_task *task,
 	UNPACK_SVAL(tmp_hdr, hdr, credits_msgs);
 	UNPACK_LVAL(tmp_hdr, hdr, receipt_result);
 	UNPACK_LLVAL(tmp_hdr, hdr, credits_bytes);
-#ifdef XIO_SESSION_DEBUG
-	UNPACK_LLVAL(tmp_hdr, hdr, connection);
-	UNPACK_LLVAL(tmp_hdr, hdr, session);
-#endif
 
 	xio_mbuf_inc(&task->mbuf, sizeof(struct xio_session_hdr));
 }
@@ -297,15 +289,9 @@ void xio_session_notify_teardown(struct xio_session *session, int reason)
 	};
 
 	if (session->ses_ops.on_session_event) {
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_unlock(session->teardown_work_ctx);
-#endif
 		session->ses_ops.on_session_event(
 				session, &event,
 				session->cb_user_context);
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_lock(session->teardown_work_ctx);
-#endif
 	}
 }
 
@@ -325,15 +311,9 @@ void xio_session_notify_new_connection(struct xio_session *session,
 	};
 
 	if (session->ses_ops.on_session_event) {
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_unlock(connection->ctx);
-#endif
 		session->ses_ops.on_session_event(
 				session, &event,
 				session->cb_user_context);
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_lock(connection->ctx);
-#endif
 	}
 }
 
@@ -354,17 +334,11 @@ void xio_session_notify_connection_established(
 	};
 
 	if (session->ses_ops.on_session_event) {
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_unlock(connection->ctx);
-#endif
 		xio_ctx_del_delayed_work(connection->ctx,
 					 &connection->connect_work);
 		session->ses_ops.on_session_event(
 				session, &event,
 				session->cb_user_context);
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_lock(connection->ctx);
-#endif
 	}
 }
 
@@ -389,17 +363,11 @@ void xio_session_notify_connection_closed(struct xio_session *session,
 	connection->cd_bit = 1;
 
 	if (session->ses_ops.on_session_event) {
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_unlock(connection->ctx);
-#endif
                 xio_ctx_del_delayed_work(connection->ctx,
 				         &connection->connect_work);
 		session->ses_ops.on_session_event(
 				session, &event,
 				session->cb_user_context);
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_lock(connection->ctx);
-#endif
 	}
 }
 
@@ -426,18 +394,12 @@ void xio_session_notify_connection_disconnected(
 	connection->cd_bit = 1;
 
 	if (session->ses_ops.on_session_event) {
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_unlock(connection->ctx);
-#endif
 		xio_ctx_del_delayed_work(connection->ctx,
 					 &connection->connect_work);
 
 		session->ses_ops.on_session_event(
 				session, &event,
 				session->cb_user_context);
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_lock(connection->ctx);
-#endif
 	}
 }
 
@@ -458,18 +420,12 @@ void xio_session_notify_connection_refused(struct xio_session *session,
 	};
 
 	if (session->ses_ops.on_session_event) {
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_unlock(connection->ctx);
-#endif
                 xio_ctx_del_delayed_work(connection->ctx,
                                          &connection->connect_work);
 
 		session->ses_ops.on_session_event(
 				session, &event,
 				session->cb_user_context);
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_lock(connection->ctx);
-#endif
 	}
 }
 
@@ -489,15 +445,9 @@ void xio_session_notify_connection_teardown(struct xio_session *session,
 	};
 
 	if (session->ses_ops.on_session_event) {
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_unlock(connection->ctx);
-#endif
 		session->ses_ops.on_session_event(
 				session, &event,
 				session->cb_user_context);
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_lock(connection->ctx);
-#endif
 	}
 }
 
@@ -518,18 +468,12 @@ void xio_session_notify_connection_error(struct xio_session *session,
 	};
 
 	if (session->ses_ops.on_session_event) {
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_unlock(connection->ctx);
-#endif
                 xio_ctx_del_delayed_work(connection->ctx,
                                          &connection->connect_work);
 
 		session->ses_ops.on_session_event(
 				session, &event,
 				session->cb_user_context);
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_lock(connection->ctx);
-#endif
 	}
 }
 
@@ -549,15 +493,9 @@ void xio_session_notify_reconnecting(struct xio_session *session,
 	};
 
 	if (session->ses_ops.on_session_event) {
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_unlock(connection->ctx);
-#endif
 		session->ses_ops.on_session_event(
 				session, &event,
 				session->cb_user_context);
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_lock(connection->ctx);
-#endif
 	}
 }
 
@@ -577,15 +515,9 @@ void xio_session_notify_reconnected(struct xio_session *session,
 	};
 
 	if (session->ses_ops.on_session_event) {
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_unlock(connection->ctx);
-#endif
 		session->ses_ops.on_session_event(
 				session, &event,
 				session->cb_user_context);
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_lock(connection->ctx);
-#endif
 	}
 }
 
@@ -635,10 +567,6 @@ static int xio_on_req_recv(struct xio_connection *connection,
 		  connection->req_ack_sn,
 		  connection->credits_msgs, connection->peer_credits_msgs);
 	*/
-#ifdef XIO_SESSION_DEBUG
-	connection->peer_connection = hdr.connection;
-	connection->peer_session = hdr.session;
-#endif
 	msg->sn		= hdr.serial_num;
 	msg->flags	= 0;
 	msg->next	= NULL;
@@ -679,16 +607,10 @@ static int xio_on_req_recv(struct xio_connection *connection,
 		/* check for repeated msgs */
 		/* repeated msgs will not be delivered to the application since they were already delivered */
 		if (connection->latest_delivered < msg->sn || connection->latest_delivered == 0) {
-#ifdef XIO_THREAD_SAFE_DEBUG
-			xio_ctx_debug_thread_unlock(connection->ctx);
-#endif
 			connection->ses_ops.on_msg(
 					connection->session, msg,
 					task->last_in_rxq,
 					connection->cb_user_context);
-#ifdef XIO_THREAD_SAFE_DEBUG
-			xio_ctx_debug_thread_lock(connection->ctx);
-#endif
 			connection->latest_delivered = msg->sn;
 		}
 	}
@@ -765,10 +687,6 @@ static int xio_on_rsp_recv(struct xio_connection *connection,
 		  connection->rsp_ack_sn,
 		  connection->credits_msgs, connection->peer_credits_msgs);
 	*/
-#ifdef XIO_SESSION_DEBUG
-	connection->peer_connection = hdr.connection;
-	connection->peer_session = hdr.session;
-#endif
 
 	msg->sn = hdr.serial_num;
 
@@ -829,29 +747,17 @@ static int xio_on_rsp_recv(struct xio_connection *connection,
 		if (omsg->flags &
 		    XIO_MSG_FLAG_REQUEST_READ_RECEIPT) {
 			if (connection->ses_ops.on_msg_delivered) {
-#ifdef XIO_THREAD_SAFE_DEBUG
-				xio_ctx_debug_thread_unlock(connection->ctx);
-#endif
 				connection->ses_ops.on_msg_delivered(
 						connection->session,
 						omsg,
 						task->last_in_rxq,
 						connection->cb_user_context);
-#ifdef XIO_THREAD_SAFE_DEBUG
-				xio_ctx_debug_thread_lock(connection->ctx);
-#endif
 			}
 		} else {
 			if (connection->ses_ops.on_ow_msg_send_complete) {
-#ifdef XIO_THREAD_SAFE_DEBUG
-				xio_ctx_debug_thread_unlock(connection->ctx);
-#endif
 				connection->ses_ops.on_ow_msg_send_complete(
 					connection->session, omsg,
 					connection->cb_user_context);
-#ifdef XIO_THREAD_SAFE_DEBUG
-				xio_ctx_debug_thread_lock(connection->ctx);
-#endif
 			}
 		}
 		sender_task->omsg = NULL;
@@ -862,17 +768,11 @@ static int xio_on_rsp_recv(struct xio_connection *connection,
 				omsg->receipt_res =
 				    (enum xio_receipt_result)hdr.receipt_result;
 				omsg->sn	  = hdr.serial_num;
-#ifdef XIO_THREAD_SAFE_DEBUG
-				xio_ctx_debug_thread_unlock(connection->ctx);
-#endif
 				connection->ses_ops.on_msg_delivered(
 						connection->session,
 						omsg,
 						task->last_in_rxq,
 						connection->cb_user_context);
-#ifdef XIO_THREAD_SAFE_DEBUG
-				xio_ctx_debug_thread_lock(connection->ctx);
-#endif
 			}
 			/* standalone receipt */
 			if (standalone_receipt) {
@@ -906,18 +806,12 @@ static int xio_on_rsp_recv(struct xio_connection *connection,
 					XIO_MSG_DIRECTION_IN);
 				task->status = 0;
 			} else {
-#ifdef XIO_THREAD_SAFE_DEBUG
-				xio_ctx_debug_thread_unlock(connection->ctx);
-#endif
 				/*if (connection->ses_ops.on_msg) */
 					connection->ses_ops.on_msg(
 						connection->session,
 						omsg,
 						task->last_in_rxq,
 						connection->cb_user_context);
-#ifdef XIO_THREAD_SAFE_DEBUG
-				xio_ctx_debug_thread_lock(connection->ctx);
-#endif
 			}
 		}
 	}
@@ -955,15 +849,9 @@ static int xio_on_rsp_send_comp(
 		 */
 		xio_clear_ex_flags(&task->omsg->flags);
 		if (connection->ses_ops.on_msg_send_complete) {
-#ifdef XIO_THREAD_SAFE_DEBUG
-			xio_ctx_debug_thread_unlock(connection->ctx);
-#endif
 			connection->ses_ops.on_msg_send_complete(
 					connection->session, task->omsg,
 					connection->cb_user_context);
-#ifdef XIO_THREAD_SAFE_DEBUG
-			xio_ctx_debug_thread_lock(connection->ctx);
-#endif
 		}
 		/* recycle the task */
 		xio_tasks_pool_put(task);
@@ -1057,15 +945,9 @@ static int xio_on_ow_req_send_comp(
 	 * release request
 	 */
 	if (connection->ses_ops.on_ow_msg_send_complete) {
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_unlock(connection->ctx);
-#endif
 		connection->ses_ops.on_ow_msg_send_complete(
 				connection->session, omsg,
 				connection->cb_user_context);
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_lock(connection->ctx);
-#endif
 	}
 	xio_tasks_pool_put(task);
 
@@ -1100,15 +982,9 @@ int xio_on_rdma_direct_comp(struct xio_session *session,
 	connection->tx_queued_msgs--;
 
 	if (connection->ses_ops.on_rdma_direct_complete) {
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_unlock(connection->ctx);
-#endif
 		connection->ses_ops.on_rdma_direct_complete(
 				connection->session, omsg,
 				connection->cb_user_context);
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_lock(connection->ctx);
-#endif
 	}
 	xio_tasks_pool_put(task);
 
@@ -1235,18 +1111,12 @@ int xio_on_nexus_message_error(struct xio_session *session,
 	xio_connection_queue_io_task(task->connection, task);
 
 	if (task->session->ses_ops.on_msg_error && IS_APPLICATION_MSG(task->tlv_type)) {
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_unlock(task->connection->ctx);
-#endif
 		task->session->ses_ops.on_msg_error(
 				task->session,
 				event_data->msg_error.reason,
 				event_data->msg_error.direction,
 				task->omsg,
 				task->connection->cb_user_context);
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_lock(task->connection->ctx);
-#endif
 	}
 
 	if (IS_REQUEST(task->tlv_type) || task->tlv_type == XIO_MSG_TYPE_RDMA)
@@ -1495,15 +1365,9 @@ int xio_on_assign_in_buf(struct xio_session *session,
 	}
 
 	if (connection->ses_ops.assign_data_in_buf) {
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_unlock(connection->ctx);
-#endif
 		retval = connection->ses_ops.assign_data_in_buf(
 					&task->imsg,
 					connection->cb_user_context);
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_lock(connection->ctx);
-#endif
 		event_data->assign_in_buf.is_assigned = (retval == 0);
 		return 0;
 	}
@@ -1550,17 +1414,11 @@ int xio_on_cancel_request(struct xio_session *sess,
 	task = xio_connection_find_io_task(connection, hdr.sn);
 	if (task) {
 		if (connection->ses_ops.on_cancel_request) {
-#ifdef XIO_THREAD_SAFE_DEBUG
-			xio_ctx_debug_thread_unlock(connection->ctx);
-#endif
 			connection->ses_ops.on_cancel_request(
 				connection->session,
 				&task->imsg,
 				connection->cb_user_context);
 			return 0;
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_lock(connection->ctx);
-#endif
 		}
 		WARN_LOG("cancel is not supported on responder\n");
 	}
@@ -1816,12 +1674,6 @@ int xio_session_destroy(struct xio_session *session)
 	if (!session)
 		return 0;
 
-#ifdef XIO_THREAD_SAFE_DEBUG
-	if (session->teardown_work_ctx)
-		/* not locking if the session did not contain active conn */
-		xio_ctx_debug_thread_lock(session->teardown_work_ctx);
-#endif
-
 	TRACE_LOG("xio_post_destroy_session seesion:%p\n", session);
 
 	if (session->teardown_work_ctx &&
@@ -1837,10 +1689,6 @@ int xio_session_destroy(struct xio_session *session)
 	} else {
 		xio_session_post_destroy(session);
 	}
-#ifdef XIO_THREAD_SAFE_DEBUG
-	if (session->teardown_work_ctx)
-		xio_ctx_debug_thread_unlock(session->teardown_work_ctx);
-#endif
 
 	return 0;
 }
@@ -1959,16 +1807,10 @@ int xio_session_notify_cancel(struct xio_connection *connection,
 {
 	/* notify the upper layer */
 	if (connection->ses_ops.on_cancel) {
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_unlock(connection->ctx);
-#endif
 		connection->ses_ops.on_cancel(
 				connection->session, req,
 				result,
 				connection->cb_user_context);
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_lock(connection->ctx);
-#endif
 	}
 
 	return 0;
@@ -1983,16 +1825,10 @@ int xio_session_notify_msg_error(struct xio_connection *connection,
 {
 	/* notify the upper layer */
 	if (connection->ses_ops.on_msg_error && IS_APPLICATION_MSG(msg->type)) {
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_unlock(connection->ctx);
-#endif
 		connection->ses_ops.on_msg_error(
 				connection->session,
 				result, direction, msg,
 				connection->cb_user_context);
-#ifdef XIO_THREAD_SAFE_DEBUG
-		xio_ctx_debug_thread_lock(connection->ctx);
-#endif
 	}
 
 	return 0;

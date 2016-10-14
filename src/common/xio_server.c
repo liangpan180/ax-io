@@ -152,9 +152,6 @@ static int xio_on_new_message(struct xio_server *server,
 			  "session:%p, nexus:%p ,session_id:%d\n",
 			  server, session, nexus, session->session_id);
 
-		/* get transport class routines */
-		session->validators_cls = xio_nexus_get_validators_cls(nexus);
-
 		connection =
 			xio_session_alloc_connection(session,
 						     server->ctx, 0,

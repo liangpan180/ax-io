@@ -62,7 +62,6 @@ enum xio_session_state {
 /* structures				                                     */
 /*---------------------------------------------------------------------------*/
 struct xio_session {
-	struct xio_transport_msg_validators_cls	*validators_cls;
 	struct xio_session_ops		ses_ops;
 
 	uint64_t			trans_sn; /* transaction sn */
@@ -181,7 +180,7 @@ int xio_session_reconnect(
 static inline int xio_session_is_valid_in_req(struct xio_session *session,
 					      struct xio_msg *msg)
 {
-	return session->validators_cls->is_valid_in_req(msg);
+	return xio_rdma_is_valid_in_req(msg);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -190,7 +189,7 @@ static inline int xio_session_is_valid_in_req(struct xio_session *session,
 static inline int xio_session_is_valid_out_msg(struct xio_session *session,
 					       struct xio_msg *msg)
 {
-	return session->validators_cls->is_valid_out_msg(msg);
+	return xio_rdma_is_valid_out_msg(msg);
 }
 
 int xio_session_notify_cancel(struct xio_connection *connection,

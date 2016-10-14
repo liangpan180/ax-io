@@ -163,40 +163,6 @@ if test "$enable_statistics_counters" != "no"; then
 fi
 
 ##########################################################################
-# debug thread safety support
-##########################################################################
-# usage: ./configure --enable-debug-thread-safety=yes
-#
-AC_MSG_CHECKING([EXPIRIMENTAL: checks if the application is thread safe when it comes to accelio callbacks and methods])
-AC_ARG_ENABLE([debug-thread-safety],
-	      [AS_HELP_STRING([--enable-debug-thread-safety],
-			      [experimental:enable debug thread safety - default no])],
-			      [enable_debug_thread_safety="$enableval"],
-			      [enable_debug_thread_safety=no])
-AC_MSG_RESULT([$enable_debug_thread_safety])
-
-if test "$enable_debug_thread_safety" = "yes"; then
-	AM_CFLAGS="$AM_CFLAGS -DXIO_THREAD_SAFE_DEBUG"
-fi
-
-##########################################################################
-# enable shared receive queue (rdma)
-##########################################################################
-# usage: ./configure --enable-shared-receive-queue=yes
-#
-AC_MSG_CHECKING([enables shared receive queue support in rdma transport])
-AC_ARG_ENABLE([shared-receive-queue],
-	      [AS_HELP_STRING([--enable-shared-receive-queue],
-			      [enable shared receive queue - default: no])],
-			       [enable_shared_receive_queue="$enableval"],
-			       [enable_shared_receive_queue=no])
-AC_MSG_RESULT([$enable_shared_receive_queue])
-
-if test "$enable_shared_receive_queue" = "yes"; then
-	AM_CFLAGS="$AM_CFLAGS -DXIO_SRQ_ENABLE"
-fi
-
-##########################################################################
 # fio compilation support
 ##########################################################################
 # usage: ./configure --enable-fio-build=yes
@@ -212,31 +178,6 @@ AC_MSG_RESULT([$enable_fio_build])
 AM_CONDITIONAL([FIO_ROOT],[test "$FIO_ROOT" != 0])
 AC_ARG_VAR([FIO_ROOT],[The root directory of the fio suite])
 AC_SUBST([FIO_ROOT])
-
-##########################################################################
-
-subdirs="src/usr";
-subdirs="$subdirs examples/hello_world";
-subdirs="$subdirs examples/hello_world_mt";
-subdirs="$subdirs examples/hello_world_iov";
-subdirs="$subdirs examples/hello_world_daemon";
-
-if test "$mypj_found_event_headers" == "yes"; then
-	subdirs="$subdirs examples/hello_world_libevent";
-fi
-
-subdirs="$subdirs tests/common";
-subdirs="$subdirs tests/hello_test";
-subdirs="$subdirs tests/hello_test_mt";
-subdirs="$subdirs tests/hello_test_bidi";
-subdirs="$subdirs tests/hello_test_lat";
-subdirs="$subdirs tests/hello_test_ow";
-subdirs="$subdirs tests/hello_test_oneway";
-subdirs="$subdirs tests/event_loop_tests";
-
-subdirs="$subdirs benchmarks/xio_perftest";
-
-##########################################################################
 
 ##########################################################################
 # add version.c uses strings to get GIT hash version
@@ -260,37 +201,16 @@ AC_MSG_CHECKING([for git head])
 AC_MSG_RESULT([$GITHEAD])
 AC_DEFINE_UNQUOTED([XIO_GITHEAD], ["$GITHEAD"], [Git commit used to build xio library])
 
-
-
-
 # distribute additional compiler and linker flags
 # --> set these variables instead of CFLAGS or LDFLAGS
 AC_SUBST([AM_CFLAGS])
 AC_SUBST([AM_LDFLAGS])
 AC_SUBST([LIBS])
-AC_SUBST([subdirs])
-
 
 # files to generate via autotools (.am or .in source files)
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([Doxyfile])
-AC_CONFIG_FILES([src/usr/Makefile])
-AC_CONFIG_FILES([examples/hello_world/Makefile])
-AC_CONFIG_FILES([examples/hello_world_mt/Makefile])
-AC_CONFIG_FILES([examples/hello_world_iov/Makefile])
-AC_CONFIG_FILES([examples/hello_world_daemon/Makefile])
-if test "$mypj_found_event_headers" == "yes"; then
-	AC_CONFIG_FILES([examples/hello_world_libevent/Makefile])
-fi
-AC_CONFIG_FILES([tests/common/Makefile])
-AC_CONFIG_FILES([tests/hello_test/Makefile])
-AC_CONFIG_FILES([tests/hello_test_mt/Makefile])
-AC_CONFIG_FILES([tests/hello_test_bidi/Makefile])
-AC_CONFIG_FILES([tests/hello_test_lat/Makefile])
-AC_CONFIG_FILES([tests/hello_test_ow/Makefile])
-AC_CONFIG_FILES([tests/hello_test_oneway/Makefile])
-AC_CONFIG_FILES([tests/event_loop_tests/Makefile])
-AC_CONFIG_FILES([benchmarks/xio_perftest/Makefile])
+AC_CONFIG_FILES([src/Makefile])
 
 # generate the final Makefile etc.
 AC_OUTPUT
