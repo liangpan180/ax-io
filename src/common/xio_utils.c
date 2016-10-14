@@ -39,7 +39,6 @@
 #include "libxio.h"
 #include "xio_log.h"
 #include "xio_common.h"
-#include "xio_protocol.h"
 
 /*---------------------------------------------------------------------------*/
 /* xio_uri_get_proto							     */
@@ -111,25 +110,6 @@ int xio_uri_get_portal(const char *uri, char *portal, int portal_len)
 		strncpy(portal, uri, len);
 		portal[len] = 0;
 		return 0;
-	}
-
-	return -1;
-}
-
-/*---------------------------------------------------------------------------*/
-/* xio_uri_get_resource							     */
-/*---------------------------------------------------------------------------*/
-int xio_uri_get_resource(const char *uri, char *resource, int resource_len)
-{
-	const char *res = xio_uri_get_resource_ptr(uri);
-
-	if (res) {
-		int  len = strlen(res);
-
-		if (len < resource_len) {
-			strcpy(resource, res);
-			return 0;
-		}
 	}
 
 	return -1;
@@ -455,17 +435,3 @@ inline const char *xio_version(void)
 	return XIO_VERSION_STRING;
 }
 EXPORT_SYMBOL(xio_version);
-
-/*---------------------------------------------------------------------------*/
-/* xio_proto_str							     */
-/*---------------------------------------------------------------------------*/
-const char *xio_proto_str(enum xio_proto proto)
-{
-	switch (proto) {
-	case XIO_PROTO_RDMA: return "rdma";
-	case XIO_PROTO_TCP: return "tcp";
-	default: return "proto_unknown";
-	}
-}
-EXPORT_SYMBOL(xio_proto_str);
-

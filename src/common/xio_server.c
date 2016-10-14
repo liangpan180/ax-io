@@ -56,7 +56,6 @@
 #include "xio_nexus.h"
 #include "xio_connection.h"
 #include "xio_server.h"
-#include <xio_env_adv.h>
 
 static int xio_on_nexus_event(void *observer, void *notifier, int event,
 			      void *event_data);
@@ -152,9 +151,6 @@ static int xio_on_new_message(struct xio_server *server,
 		DEBUG_LOG("server [new session]: server:%p, " \
 			  "session:%p, nexus:%p ,session_id:%d\n",
 			  server, session, nexus, session->session_id);
-
-		/* get transport class routines */
-		session->validators_cls = xio_nexus_get_validators_cls(nexus);
 
 		connection =
 			xio_session_alloc_connection(session,

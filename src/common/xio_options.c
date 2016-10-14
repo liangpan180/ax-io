@@ -132,73 +132,36 @@ static int xio_general_set_opt(void *xio_obj, int optname,
 		break;
 	case XIO_OPTNAME_MAX_IN_IOVLEN:
 		if (optlen == sizeof(int)) {
-			struct xio_transport *rdma_transport =
-						xio_get_transport("rdma");
-			struct xio_transport *tcp_transport =
-						xio_get_transport("tcp");
 			int retval = 0;
-
 			if (*((int *)optval) > XIO_IOVLEN &&
 			    *((int *)optval) <= XIO_MAX_IOV) {
 				g_options.max_in_iovsz = *((int *)optval);
-				if (rdma_transport &&
-				    rdma_transport->set_opt)
-					retval |= rdma_transport->set_opt(
-							xio_obj, optname,
-							optval, optlen);
-				if (tcp_transport &&
-				    tcp_transport->set_opt)
-					retval |= tcp_transport->set_opt(
-							xio_obj, optname,
-							optval, optlen);
+				retval |= xio_rdma_set_opt(
+						xio_obj, optname,
+						optval, optlen);
 			}
 			return retval;
 		}
 		break;
 	case XIO_OPTNAME_MAX_OUT_IOVLEN:
 		if (optlen == sizeof(int)) {
-			struct xio_transport *rdma_transport =
-						xio_get_transport("rdma");
-			struct xio_transport *tcp_transport =
-						xio_get_transport("tcp");
 			int retval = 0;
-
 			if (*((int *)optval) > XIO_IOVLEN &&
 			    *((int *)optval) <= XIO_MAX_IOV) {
 				g_options.max_out_iovsz = *((int *)optval);
-				if (rdma_transport &&
-				    rdma_transport->set_opt)
-					retval |= rdma_transport->set_opt(
-							xio_obj, optname,
-							optval, optlen);
-				if (tcp_transport &&
-				    tcp_transport->set_opt)
-					retval |= tcp_transport->set_opt(
-							xio_obj, optname,
-							optval, optlen);
+				retval |= xio_rdma_set_opt(
+						xio_obj, optname,
+						optval, optlen);
 			}
 			return retval;
 		}
 		break;
 	case XIO_OPTNAME_ENABLE_DMA_LATENCY:
 		if (optlen == sizeof(int)) {
-			struct xio_transport *rdma_transport =
-						xio_get_transport("rdma");
-			struct xio_transport *tcp_transport =
-						xio_get_transport("tcp");
 			int retval = 0;
-
-			if (rdma_transport &&
-			    rdma_transport->set_opt)
-				retval |= rdma_transport->set_opt(
+			retval |= xio_rdma_set_opt(
 						xio_obj, optname,
 						optval, optlen);
-			if (tcp_transport &&
-			    tcp_transport->set_opt)
-				retval |= tcp_transport->set_opt(
-						xio_obj, optname,
-						optval, optlen);
-
 			return retval;
 		}
 		break;
@@ -384,38 +347,11 @@ static int xio_general_get_opt(void  *xio_obj, int optname,
 int xio_set_opt(void *xio_obj, int level,  int optname,
 		const void *optval, int optlen)
 {
-	static struct xio_transport *rdma_transport;
-	static struct xio_transport *tcp_transport;
-
 	switch (level) {
 	case XIO_OPTLEVEL_ACCELIO:
 		return xio_general_set_opt(xio_obj, optname, optval, optlen);
 	case XIO_OPTLEVEL_RDMA:
-		if (!rdma_transport) {
-			rdma_transport = xio_get_transport("rdma");
-			if (!rdma_transport) {
-				xio_set_error(EFAULT);
-				return -1;
-			}
-		}
-		if (!rdma_transport->set_opt)
-			break;
-		return rdma_transport->set_opt(xio_obj,
-					       optname, optval, optlen);
-		break;
-	case XIO_OPTLEVEL_TCP:
-		if (!tcp_transport) {
-			tcp_transport = xio_get_transport("tcp");
-			if (!tcp_transport) {
-				xio_set_error(EFAULT);
-				return -1;
-			}
-		}
-		if (!tcp_transport->set_opt)
-			break;
-		return tcp_transport->set_opt(xio_obj,
-					      optname, optval, optlen);
-		break;
+		return xio_rdma_set_opt(xio_obj, optname, optval, optlen);
 	default:
 		break;
 	}
@@ -430,38 +366,11 @@ int xio_set_opt(void *xio_obj, int level,  int optname,
 int xio_get_opt(void *xio_obj, int level,  int optname,
 		void *optval, int *optlen)
 {
-	static struct xio_transport *rdma_transport;
-	static struct xio_transport *tcp_transport;
-
 	switch (level) {
 	case XIO_OPTLEVEL_ACCELIO:
 		return xio_general_get_opt(xio_obj, optname, optval, optlen);
 	case XIO_OPTLEVEL_RDMA:
-		if (!rdma_transport) {
-			rdma_transport = xio_get_transport("rdma");
-			if (!rdma_transport) {
-				xio_set_error(EFAULT);
-				return -1;
-			}
-		}
-		if (!rdma_transport->get_opt)
-			break;
-		return rdma_transport->get_opt(xio_obj,
-					       optname, optval, optlen);
-		break;
-	case XIO_OPTLEVEL_TCP:
-		if (!tcp_transport) {
-			tcp_transport = xio_get_transport("tcp");
-			if (!tcp_transport) {
-				xio_set_error(EFAULT);
-				return -1;
-			}
-		}
-		if (!tcp_transport->get_opt)
-			break;
-		return tcp_transport->get_opt(xio_obj,
-					      optname, optval, optlen);
-		break;
+		return xio_rdma_get_opt(xio_obj, optname, optval, optlen);
 	default:
 		break;
 	}

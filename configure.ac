@@ -163,60 +163,6 @@ if test "$enable_statistics_counters" != "no"; then
 fi
 
 ##########################################################################
-# debug thread safety support
-##########################################################################
-# usage: ./configure --enable-debug-thread-safety=yes
-#
-AC_MSG_CHECKING([EXPIRIMENTAL: checks if the application is thread safe when it comes to accelio callbacks and methods])
-AC_ARG_ENABLE([debug-thread-safety],
-	      [AS_HELP_STRING([--enable-debug-thread-safety],
-			      [experimental:enable debug thread safety - default no])],
-			      [enable_debug_thread_safety="$enableval"],
-			      [enable_debug_thread_safety=no])
-AC_MSG_RESULT([$enable_debug_thread_safety])
-
-if test "$enable_debug_thread_safety" = "yes"; then
-	AM_CFLAGS="$AM_CFLAGS -DXIO_THREAD_SAFE_DEBUG"
-fi
-
-##########################################################################
-# enable shared receive queue (rdma)
-##########################################################################
-# usage: ./configure --enable-shared-receive-queue=yes
-#
-AC_MSG_CHECKING([enables shared receive queue support in rdma transport])
-AC_ARG_ENABLE([shared-receive-queue],
-	      [AS_HELP_STRING([--enable-shared-receive-queue],
-			      [enable shared receive queue - default: no])],
-			       [enable_shared_receive_queue="$enableval"],
-			       [enable_shared_receive_queue=no])
-AC_MSG_RESULT([$enable_shared_receive_queue])
-
-if test "$enable_shared_receive_queue" = "yes"; then
-	AM_CFLAGS="$AM_CFLAGS -DXIO_SRQ_ENABLE"
-fi
-
-##########################################################################
-# raio compilation support
-##########################################################################
-# usage: ./configure --disable-raio-build
-#
-AC_MSG_CHECKING([whether to build with raio example library])
-AC_ARG_ENABLE([raio_build],
-	      [AS_HELP_STRING([--enable-raio-build],
-			      [enable raio library generation - default:yes ])],
-			       [enable_raio_build=$enableval],
-			       [enable_raio_build=yes])
-AC_MSG_RESULT([$enable_raio_build])
-
-if test "$enable_raio_build" != "no"; then
-AC_CHECK_HEADERS([libaio.h],
-		 [mypj_found_aio_headers=yes; break;])
-AS_IF([test "x$mypj_found_aio_headers" != "xyes"],
-      [AC_MSG_ERROR([Unable to find the libaio-devel header files])])
-fi
-
-##########################################################################
 # fio compilation support
 ##########################################################################
 # usage: ./configure --enable-fio-build=yes
@@ -232,61 +178,6 @@ AC_MSG_RESULT([$enable_fio_build])
 AM_CONDITIONAL([FIO_ROOT],[test "$FIO_ROOT" != 0])
 AC_ARG_VAR([FIO_ROOT],[The root directory of the fio suite])
 AC_SUBST([FIO_ROOT])
-
-##########################################################################
-AC_MSG_CHECKING([whether to build kernel module])
-AC_ARG_ENABLE(kernel-module,
-	[  --enable-kernel-module  Compile kernel module ],
-	[enable_kernel_module="$enableval"],
-	[enable_kernel_module=no])
-
-AC_MSG_RESULT([$enable_kernel_module])
-
-if test "$enable_kernel_module" != "no"; then
-	AC_CONFIG_SUBDIRS([src/kernel/xio])
-	AC_CONFIG_SUBDIRS([src/kernel/transport/rdma])
-	AC_CONFIG_SUBDIRS([src/kernel/transport/tcp])
-	AC_CONFIG_SUBDIRS([examples/kernel/hello_world])
-	AC_CONFIG_SUBDIRS([examples/kernel/hello_world_mt])
-	AC_CONFIG_SUBDIRS([tests/kernel/hello_test])
-	AC_CONFIG_SUBDIRS([tests/kernel/hello_test_lat])
-	AC_CONFIG_SUBDIRS([tests/kernel/hello_test_ow])
-	if test "$enable_raio_build" == "yes"; then
-		AC_CONFIG_SUBDIRS([examples/raio/kernel/nbdx])
-	fi
-else
-	subdirs2="src/usr";
-	subdirs2="$subdirs2 src/tools/usr/";
-	subdirs2="$subdirs2 examples/usr/hello_world";
-	subdirs2="$subdirs2 examples/usr/hello_world_mt";
-	subdirs2="$subdirs2 examples/usr/hello_world_iov";
-	subdirs2="$subdirs2 examples/usr/hello_world_daemon";
-
-if test "$mypj_found_event_headers" == "yes"; then
-	subdirs2="$subdirs2 examples/usr/hello_world_libevent";
-fi
-if test "$enable_raio_build" != "no"; then
-	subdirs2="$subdirs2 examples/raio";
-if test "$enable_fio_build" != "no"; then
-	subdirs2="$subdirs2 examples/raio/usr/fio";
-fi
-fi
-	subdirs2="$subdirs2 tests/usr/common";
-	subdirs2="$subdirs2 tests/usr/hello_test";
-	subdirs2="$subdirs2 tests/usr/hello_test_mt";
-	subdirs2="$subdirs2 tests/usr/hello_test_bidi";
-	subdirs2="$subdirs2 tests/usr/hello_test_lat";
-	subdirs2="$subdirs2 tests/usr/hello_test_ow";
-	subdirs2="$subdirs2 tests/usr/hello_test_oneway";
-	subdirs2="$subdirs2 tests/usr/event_loop_tests";
-if test "$enable_rdma" != "no"; then
-	subdirs2="$subdirs2 tests/usr/direct_rdma_test";
-fi
-	subdirs2="$subdirs2 benchmarks/usr/xio_perftest";
-	subdirs2="$subdirs2 regression/usr/reg_basic_mt";
-fi
-
-##########################################################################
 
 ##########################################################################
 # add version.c uses strings to get GIT hash version
@@ -310,46 +201,16 @@ AC_MSG_CHECKING([for git head])
 AC_MSG_RESULT([$GITHEAD])
 AC_DEFINE_UNQUOTED([XIO_GITHEAD], ["$GITHEAD"], [Git commit used to build xio library])
 
-
-
-
 # distribute additional compiler and linker flags
 # --> set these variables instead of CFLAGS or LDFLAGS
 AC_SUBST([AM_CFLAGS])
 AC_SUBST([AM_LDFLAGS])
 AC_SUBST([LIBS])
-AC_SUBST([subdirs2])
-
 
 # files to generate via autotools (.am or .in source files)
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([Doxyfile])
-AC_CONFIG_FILES([src/usr/Makefile])
-AC_CONFIG_FILES([src/tools/usr/Makefile])
-AC_CONFIG_FILES([examples/usr/hello_world/Makefile])
-AC_CONFIG_FILES([examples/usr/hello_world_mt/Makefile])
-AC_CONFIG_FILES([examples/usr/hello_world_iov/Makefile])
-AC_CONFIG_FILES([examples/usr/hello_world_daemon/Makefile])
-if test "$mypj_found_event_headers" == "yes"; then
-	AC_CONFIG_FILES([examples/usr/hello_world_libevent/Makefile])
-fi
-AC_CONFIG_FILES([examples/raio/Makefile])
-if test "$enable_fio_build" != "no"; then
-AC_CONFIG_FILES([examples/raio/usr/fio/Makefile])
-fi
-AC_CONFIG_FILES([tests/usr/common/Makefile])
-AC_CONFIG_FILES([tests/usr/hello_test/Makefile])
-AC_CONFIG_FILES([tests/usr/hello_test_mt/Makefile])
-AC_CONFIG_FILES([tests/usr/hello_test_bidi/Makefile])
-AC_CONFIG_FILES([tests/usr/hello_test_lat/Makefile])
-AC_CONFIG_FILES([tests/usr/hello_test_ow/Makefile])
-AC_CONFIG_FILES([tests/usr/hello_test_oneway/Makefile])
-AC_CONFIG_FILES([tests/usr/event_loop_tests/Makefile])
-if test "$enable_rdma" != "no"; then
-AC_CONFIG_FILES([tests/usr/direct_rdma_test/Makefile])
-fi
-AC_CONFIG_FILES([benchmarks/usr/xio_perftest/Makefile])
-AC_CONFIG_FILES([regression/usr/reg_basic_mt/Makefile])
+AC_CONFIG_FILES([src/Makefile])
 
 # generate the final Makefile etc.
 AC_OUTPUT

@@ -134,8 +134,7 @@ struct xio_nexus_init_attr {
  * Connection data type
  */
 struct xio_nexus {
-	struct xio_transport		*transport;
-	struct xio_transport_base	*transport_hndl;
+	struct xio_transport_handle	*transport_hndl;
 
 	struct xio_tasks_pool		*primary_tasks_pool;
 	struct xio_tasks_pool		*initial_tasks_pool;
@@ -151,7 +150,7 @@ struct xio_nexus {
 	short				is_first_req;
 	short				reconnect_retries;
 	int				is_listener;
-	int				srq_enabled;
+	int				pad;
 	xio_delayed_work_handle_t	close_time_hndl;
 
 	struct list_head		observers_htbl;
@@ -161,7 +160,7 @@ struct xio_nexus {
 	/* Client side for reconnect */
 	int				server_cid;
 	int				server_cid_pad;
-	struct xio_transport_base	*new_transport_hndl;
+	struct xio_transport_handle	*new_transport_hndl;
 	char				*portal_uri;
 	char				*out_if_addr;
 	uint32_t			trans_attr_mask;
@@ -212,12 +211,6 @@ int xio_nexus_accept(struct xio_nexus *nexus);
 /* xio_handler_init							     */
 /*---------------------------------------------------------------------------*/
 int xio_nexus_reject(struct xio_nexus *nexus);
-
-/*---------------------------------------------------------------------------*/
-/* xio_nexus_poll							     */
-/*---------------------------------------------------------------------------*/
-int xio_nexus_poll(struct xio_nexus *nexus,
-		   long min_nr, long nr, struct timespec *timeout);
 
 /*---------------------------------------------------------------------------*/
 /* xio_nexus_send							     */
@@ -306,16 +299,6 @@ int xio_nexus_get_peer_addr(struct xio_nexus *nexus,
 /*---------------------------------------------------------------------------*/
 int xio_nexus_get_local_addr(struct xio_nexus *nexus,
 			     struct sockaddr_storage *sa, socklen_t len);
-
-/*---------------------------------------------------------------------------*/
-/* xio_nexus_get_validators_cls						     */
-/*---------------------------------------------------------------------------*/
-static inline
-struct xio_transport_msg_validators_cls *xio_nexus_get_validators_cls(
-						struct xio_nexus *nexus)
-{
-	return &nexus->transport->validators_cls;
-}
 
 /*---------------------------------------------------------------------------*/
 /* xio_nexus_get_proto							     */

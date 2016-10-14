@@ -1,7 +1,7 @@
 # this is example-file: Makefile.am
 
 # the subdirectories of the project to go into
-SUBDIRS = @subdirs@ @subdirs2@
+SUBDIRS = src
 
 #ACLOCAL_AMFLAGS = -I m4
 
